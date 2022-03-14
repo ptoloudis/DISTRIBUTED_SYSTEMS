@@ -7,10 +7,36 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define EXAMPLE_PORT 5006
 #define EXAMPLE_GROUP "224.1.1.1"
 #define source_iface "192.168.2.4"
+
+
+pthread_mutex_t lock;
+int servevies[3];
+int num_servevies = 0;
+
+int registe(int svcid){
+   pthread_mutex_lock(&lock);
+   while(num_servevies >= 3){}
+
+   servevies[num_servevies] = svcid;
+   num_servevies++;
+   pthread_mutex_unlock(&lock);
+   return 0;
+}
+
+int unregister (int svcid){
+   for(i = 0; i < num_servevies; i++){
+      if(servevies[i] == svcid){
+         servevies[i] = 0;
+         num_servevies--;
+         return 0;
+      }
+   }
+}
 
 int main(int argc)
 {
@@ -66,8 +92,7 @@ int main(int argc)
       }
       printf("%s: message = \"%s\"\n", inet_ntoa(addr.sin_addr), message);
       if (strcmp(message,"robot") == 0) {
-         sprintf(message2,"%d_YES", 10);
-         //strcpy(message2,"3_YES");  
+         strcpy(message2,"3_YES");  
       }
       else {
          strcpy(message2,"2_NO");

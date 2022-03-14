@@ -1,12 +1,28 @@
 import threading
 
 
-class id:
-    def __init__(self ):
-        self.id = 0
-    def get_id(self):
-        self.id += 1
-        return self.id
+class serveries:
+    def __init__(self):
+        self.id[3][3] = []
+        self.index = 0
+    def add_id(self, id,ip):
+        self.id[self.index][0] = id
+        self.id[self.index][1] = ip
+        self.id[self.index][2] = 10
+        self.index += 1
+    def get_id(self,id):
+        for i in range(0,self.index):
+            if self.id[i][0] == id and self.id[i][2] > 0:
+                return self.id[i][1]
+        return 0;
+    def down_id(self,id):
+        for i in range(0,self.index):
+            if self.id[i][0] == id:
+                self.id[i][2] -= 1
+                return
+        return;
+
+        
 
 class messeges:
     def __init___(self, destination:str, messege:bytes, messege_length:int):

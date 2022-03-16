@@ -11,234 +11,20 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
-#define SERVER_IP "127.0.0.1" ////?????????
-#define SERVER_PORT 12000
-#define UPDATE_INTERVAL 1
-#define BufferLen 1024
-
-// // Handlers for the sending and receiving threads.
-// int receive_handler(void *info);
-// int send_handler(void *info);
-
-
-///////////////////////////////// MINE ///////////////////////////////////////////////////
-
-
-typedef struct arguments Args_t;
-typedef struct client_node Node_t;
-typedef struct client_list List_t;
-typedef struct client_info Info_t;
-
-// Arguments struct (and creation function) to pass the required info
-// into the thread handlers.
-struct arguments {
-    List_t list;
-    int fd;
-};
-
-struct client_list {
-    Node_t head, tail;
-    pthread_cond_t t_lock;
-    pthread_mutex_t mutex;
-};
-
-struct client_info {
-    char host[INET_ADDRSTRLEN];
-    int port;
-};
-
-
-
-Args_t new_args(List_t list, int fd) 
-{
-    Args_t args;
-
-    args = calloc(1, sizeof(*args));
-    args->list = list;
-    args->fd = fd;
-
-    return args;
-}
-
-
-////////////////////////////////////////////////////////////////////////
-// Socket helper functions
-
-// // Wrapper for the recv function, to avoid code duplication.
-// int receive_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_from,
-//         socklen_t *from_len, char *who);
-
-// // Wrapper for the sendto function, to avoid code duplication.
-// int send_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_to,
-//         socklen_t *to_len, char *who);
-
-// // Get a client_info struct based on the sockaddr we're communicating with.
-// struct client_info get_client_info(struct sockaddr_in *sa);
-
-// // Get the "name" (IP address) of who we're communicating with.
-// char *get_name(struct sockaddr_in *sa, char *name);
-
-// // Populate a sockaddr_in struct with the specified IP / port to connect to.
-// void fill_sockaddr(struct sockaddr_in *sa, char *ip, int port);
-
-// // A wrapper function for fgets, similar to Python's built-in 'input' function.
-// void get_input(char *buf, char *msg);
-
-// "Print" out a client, by copying its host/port into the specified buffer.
-//char *print_client_buf(struct client_info client, char *buf);
-
-///////////////
-void print_client(Info_t client) {
-    printf("%s:%d\n", client.host, client.port);
-}
-
-char *print_client_buf(Info_t client, char *buf) {
-    sprintf(buf, "%s:%d", client.host, client.port);
-    return buf;
-}
-
-void print_list(List list) 
-{
-    printf("---------------\n");
-    printf("Clients are: \n");
-
-    char name[BUF_LEN] = {0};
-    Node_t curr = NULL;
-    for (curr = list->head; curr != NULL; curr = curr->next) {
-        printf("%s -> ", print_client_buf(curr->client, name));
-    }
-
-    printf("X\n");
-    printf("---------------\n");
-
-}
-
-List_t list_new(void) 
-{
-    List_t list = calloc(1, sizeof(*list));
-
-    pthread_cond_init(&list->t_lock);
-    pthread_mutex_init(&list->mutex, NULL);
-
-    return list;
-}
-
-Node_t new_node(Info_t client) 
-{
-    Node_t node = calloc(1, sizeof(*node));
-    node->client = client;
-    return node;
-}
-
-void list_add_node(List list, Node node) 
-{
-    assert(list != NULL);
-
-    if (list->tail == NULL) 
-    {
-        assert(list->head == NULL);
-        list->head = list->tail;
-        list->tail = node;
-    } 
-    else 
-    {
-        assert(list->head != NULL);
-        list->tail->next = node;
-        node->prev = list->tail;
-        list->tail = node;
-    }
-}
-
-void list_add(List_t list, Info_t client) 
-{
-    printf("Adding a client: "); 
-    print_client(client);
-    Node_t new = new_node(client);
-    list_add_node(list, new);
-}
-
-// Returns the node, or NULL if not found.
-Node_t list_find(List_t list, Info_t client) {
-    assert(list != NULL);
-
-    Node_t found = NULL;
-    Node_t curr = NULL;
-
-    for (curr = list->head; curr != NULL; curr = curr->next) 
-    {
-        if (clients_equal(curr->client, client)) 
-        found = curr;
-    }
-    return found;
-}
-
-void node_destroy(Node_t node) {
-    free(node);
-}
-
-void list_remove_client(List_t list, Info_t client) 
-{
-    printf("Removing a client: "); 
-    print_client(client);
-
-    Node_t to_remove = list_find(list, client);
-    list_remove(list, to_remove);
-}
-
-void list_remove(List list, Node to_remove) 
-{
-    if (to_remove == NULL) {
-        fprintf(stderr, "Tried to remove a node that wasn't in the list!");
-        return;
-    }
-
-    if (list->head == to_remove) {
-        assert(to_remove->prev == NULL);
-        list->head = to_remove->next;
-    }
-
-    if (list->tail == to_remove) {
-        assert(to_remove->next == NULL);
-        list->tail = to_remove->prev;
-    }
-
-    if (to_remove->next) to_remove->next = to_remove->next->next;
-    if (to_remove->prev) to_remove->prev = to_remove->prev->prev;
-
-    node_destroy(to_remove);
-
-}
-
-void list_destroy(List_t list) 
-{
-    Node_t curr = NULL;
-    Node_t tmp = NULL;
-
-    for (curr = list->head; curr != NULL;) 
-    {
-        tmp = curr;
-        curr = curr->next;
-        node_destroy(tmp);
-    }
-
-    pthread_mutex_destroy(&list->mutex);
-    pthread_cond_destroy(&list->t_lock);
-
-    free(list);
-}
+#include "header.h"
 
 /////Socket
 
-void get_input (char *buf, char *msg) {
+void get_input (char *buf, char *msg) 
+{
     printf("%s", msg);
     fgets(buf, BUF_LEN, stdin);
     buf[strcspn(buf, "\n")] = '\0'; // Remove the newline
 }
 
 // Populate a `sockaddr_in` struct with the IP / port to connect to.
-void fill_sockaddr(struct sockaddr_in *sa, char *ip, int port) {
-
+void fill_sockaddr(struct sockaddr_in *sa, char *ip, int port) 
+{
     // Set all of the memory in the sockaddr to 0.
     memset(sa, 0, sizeof(struct sockaddr_in));
 
@@ -249,8 +35,9 @@ void fill_sockaddr(struct sockaddr_in *sa, char *ip, int port) {
 }
 
 // Populates a client_info struct from a `sockaddr_in`.
-Info_t get_client_info(struct sockaddr_in *sa) {
-    struct client_info info = {};
+Info_t get_client_info(struct sockaddr_in *sa) 
+{
+    Info_t info = {};
     info.port = ntohs(sa->sin_port);
     inet_ntop(sa->sin_family, &(sa->sin_addr), info.host, INET_ADDRSTRLEN);
 
@@ -260,7 +47,8 @@ Info_t get_client_info(struct sockaddr_in *sa) {
 // Get the "name" (IP address) of who we're communicating with.
 // Takes in an array to store the name in.
 // Returns a pointer to that array for convenience.
-char *get_name(struct sockaddr_in *sa, char *name) {
+char *get_name(struct sockaddr_in *sa, char *name) 
+{
     inet_ntop(sa->sin_family, &(sa->sin_addr), name, BUF_LEN);
     return name;
 }
@@ -268,8 +56,8 @@ char *get_name(struct sockaddr_in *sa, char *name) {
 // A wrapper for the recvfrom function.
 // The `who` parameter will be "send" or "recv", to make the output
 // clearer (so that you can see which thread called the function).
-int recv_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_from,
-        socklen_t *from_len, char *who) {
+int recv_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_from, socklen_t *from_len, char *who) 
+{
 
     char name[BUF_LEN] = {0};
 
@@ -291,18 +79,15 @@ int recv_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_from,
 // A wrapper for the sendto function.
 // The `who` parameter will be "send" or "recv", to make the output
 // clearer (so that you can see which thread called the function).
-int send_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_to,
-        socklen_t *to_len, char *who) {
-
+int send_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_to, socklen_t *to_len, char *who) 
+{
     char name[BUF_LEN] = {0};
 
-    int numbytes = sendto(fd, buf, strlen(buf), 0,
-            (struct sockaddr *) sockaddr_to, *to_len);
+    int numbytes = sendto(fd, buf, strlen(buf), 0, (struct sockaddr *) sockaddr_to, *to_len);
 
     struct client_info client = get_client_info(sockaddr_to);
 
-    printf("[%s] Sent %d bytes to %s: %s\n", who, numbytes,
-            print_client_buf(client, name), buf);
+    printf("[%s] Sent %d bytes to %s: %s\n", who, numbytes, print_client_buf(client, name), buf);
 
     return numbytes;
 
@@ -401,7 +186,9 @@ int send_handler(void *arguments)
 {
     Args_t args;
     List_t list;
+    Node_t curr;
     int client_fd;
+    char *curr_time;
 
     // Array that we'll use to store the data we're sending / receiving.
     char buf[BUF_LEN + 1] = {0};
@@ -423,15 +210,13 @@ int send_handler(void *arguments)
         print_list(list);
 
         // For each client:
-        for (Node curr = list->head; curr != NULL; curr = curr->next) {
+        for (curr = list->head; curr != NULL; curr = curr->next) {
 
             // Get the current time.
-            char *curr_time = get_time();
+            curr_time = get_time();
             snprintf(buf, BUF_LEN, "Current time is %s", curr_time);
 
-            printf("[send] Curr client is: %s\n",
-                    print_client_buf(curr->client, name));
-
+            printf("[send] Curr client is: %s\n", print_client_buf(curr->client, name));
 
             // We create a sockaddr_in to store the details of the
             // client we're replying to, and fill it with the client's
@@ -440,8 +225,7 @@ int send_handler(void *arguments)
             socklen_t to_len = sizeof(sockaddr_to);
             fill_sockaddr(&sockaddr_to, curr->client.host, curr->client.port);
 
-            printf("[send] Sending time to %s listening at %d at time %s\n",
-                    curr->client.host, curr->client.port, curr_time);
+            printf("[send] Sending time to %s listening at %d at time %s\n", curr->client.host, curr->client.port, curr_time);
 
             send_wrapper(client_fd, buf, &sockaddr_to, &to_len, "send");
         }
@@ -500,6 +284,7 @@ int main(int argc, char *argv[]) {
     // The list struct also contains a mutex and a condition variable
     // (equivalent to Python's threading.Condition()).
     List_t list = list_new();
+    List_t list2 = list_new();
 
     // Create an args struct for each thread. Both structs have a
     // pointer to the same list, but different sockets (different file
@@ -511,6 +296,7 @@ int main(int argc, char *argv[]) {
     pthread_t recv_thread;
     pthread_t send_thread;
 
+    pthread_create(&multi_thread, )
     pthread_create(&recv_thread, recv_handler, (void *) server_info);
     pthread_create(&send_thread, send_handler, (void *) client_info);
 

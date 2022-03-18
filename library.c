@@ -93,7 +93,6 @@ Node_t *list_find(List_t *list, Info_t *client) {
 
     for (curr = list->head; curr != NULL; curr = curr->next) 
     {
-        // if (list_find(curr->client, client)) 
         found = curr;
     }
     return found;
@@ -356,16 +355,16 @@ void *multicast(){
    }   
 
    char *ptr = strtok(source_iface, ",");
-   while (ptr) { 
-   mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
-      mreq.imr_interface.s_addr = inet_addr(ptr);        
-      if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-            &mreq, sizeof(mreq)) < 0) {
-            perror("setsockopt mreq");
-            exit(1);
-         }         
-      ptr = strtok(NULL, ",");
-   }
+//    while (ptr) { 
+//    mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
+//       mreq.imr_interface.s_addr = inet_addr(ptr);        
+//       if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+//             &mreq, sizeof(mreq)) < 0) {
+//             perror("setsockopt mreq");
+//             exit(1);
+//          }         
+//       ptr = strtok(NULL, ",");
+//    }
    while (1) {
       cnt = recvfrom(sock, message, sizeof(message), 0, 
       (struct sockaddr *) &addr, &addrlen);
@@ -437,16 +436,16 @@ void *ping_pong()
    }   
 
    char *ptr = strtok(source_iface, ",");
-   while (ptr) { 
-   mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
-      mreq.imr_interface.s_addr = inet_addr(ptr);        
-      if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-            &mreq, sizeof(mreq)) < 0) {
-            perror("setsockopt mreq");
-            exit(1);
-         }         
-      ptr = strtok(NULL, ",");
-   }
+//    while (ptr) { 
+//    mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
+//       mreq.imr_interface.s_addr = inet_addr(ptr);        
+//       if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+//             &mreq, sizeof(mreq)) < 0) {
+//             perror("setsockopt mreq");
+//             exit(1);
+//          }         
+//       ptr = strtok(NULL, ",");
+//    }
    while (1) {
       cnt = recvfrom(sock, message, sizeof(message), 0, 
       (struct sockaddr *) &addr, &addrlen);

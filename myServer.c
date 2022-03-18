@@ -204,7 +204,7 @@ void *send_handler(void *arguments)
         print_list(list);
 
         // For each client:
-        for (curr = &list->head; curr != NULL; curr = curr->next) {
+        for (curr = list->head; curr != NULL; curr = curr->next) {
             printf("[send] Curr client is: %s\n", print_client_buf(curr->client, name));
 
             // We create a sockaddr_in to store the details of the
@@ -246,7 +246,7 @@ void *prime(){
 
     while (1)
     {                     
-        number = (int *)recv_handler((void *)worker);
+        number = (int *)recv_handler((void *)&worker);
         flag =1;
 
         // Iterate from 2 to sqrt(n)

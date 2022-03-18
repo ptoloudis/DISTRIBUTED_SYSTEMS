@@ -12,6 +12,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include "header.h"
+#include <math.h>
+
+int x;
 
 /////Socket
 
@@ -44,15 +47,6 @@ Info_t get_client_info(struct sockaddr_in *sa)
     return info;
 }
 
-// Get the "name" (IP address) of who we're communicating with.
-// Takes in an array to store the name in.
-// Returns a pointer to that array for convenience.
-char *get_name(struct sockaddr_in *sa, char *name) 
-{
-    inet_ntop(sa->sin_family, &(sa->sin_addr), name, BUF_LEN);
-    return name;
-}
-
 // A wrapper for the recvfrom function.
 // The `who` parameter will be "send" or "recv", to make the output
 // clearer (so that you can see which thread called the function).
@@ -71,7 +65,7 @@ int recv_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_from, socklen_t
     Info_t client = get_client_info(sockaddr_from);
 
     printf("[%s] Received %d bytes from %s: %s\n", who, numbytes,
-            print_client_buf(client, name), buf);
+            print_client_buf(&client, name), buf);
 
     return numbytes;
 }
@@ -87,17 +81,18 @@ int send_wrapper(int fd, char *buf, struct sockaddr_in *sockaddr_to, socklen_t *
 
     struct client_info client = get_client_info(sockaddr_to);
 
-    printf("[%s] Sent %d bytes to %s: %s\n", who, numbytes, print_client_buf(client, name), buf);
+    printf("[%s] Sent %d bytes to %s: %s\n", who, numbytes, print_client_buf(&client, name), buf);
 
     return numbytes;
 
 }
 
 
-int recv_handler(void *arguments) 
+void *recv_handler(void *arguments) 
 {
-    Args_t args;
-    List_t list;
+    Args_t *args;
+    List_t *list;
+    Node_t *node;
     int server_fd;
     // Array that we'll use to store the data we're sending / receiving.
     char buf[BUF_LEN + 1] = {0};
@@ -112,7 +107,7 @@ int recv_handler(void *arguments)
     socklen_t from_len = sizeof(sockaddr_from);
 
 
-    args = (Args_t) arguments;
+    args = (Args_t *) arguments;
     list = args->list;
     server_fd = args->fd;
 
@@ -140,16 +135,17 @@ int recv_handler(void *arguments)
         pthread_mutex_lock(&(list->mutex));
         printf("[recv] Locked the mutex!\n");
 
-        printf("[recv] Received request from %s listening at %d: %s at time %s",
-                client.host, client.port, buf, get_time());
+        printf("[recv] Received request from %s listening at %d: %s\n",
+                client.host, client.port, buf);
 
         if (!strcmp(buf, "Subscribe")) {
-            list_add(list, client);
+            list_add(list, &client);
             strcpy(buf, "Subscription successful");
 
         } else if (!strcmp(buf, "Unsubscribe")) {
-            if (list_contains(list, client)) {
-                list_remove_client(list, client);
+            node = list_find(list, &client);
+            if (node != NULL) {
+                list_remove_client(list, &client);
                 strcpy(buf, "Subscription removed");
             } else {
                 strcpy(buf, "You are not currently subscribed");
@@ -178,17 +174,15 @@ int recv_handler(void *arguments)
         pthread_mutex_unlock(&(list->mutex));
         printf("[recv] mutex unlocked!\n");
     }
-
-    return EXIT_SUCCESS;
 }
 
-int send_handler(void *arguments) 
+void *send_handler(void *arguments) 
 {
-    Args_t args;
-    List_t list;
-    Node_t curr;
+    Args_t *args;
+    List_t *list;
+    Node_t *curr;
     int client_fd;
-    char *curr_time;
+    
 
     // Array that we'll use to store the data we're sending / receiving.
     char buf[BUF_LEN + 1] = {0};
@@ -196,7 +190,7 @@ int send_handler(void *arguments)
     // Temporary array used to store the name of the client when printing.
     char name[BUF_LEN] = {0};
 
-    args = (Args_t) arguments;
+    args = (Args_t *) arguments;
     list = args->list;
     client_fd = args->fd;
 
@@ -210,12 +204,7 @@ int send_handler(void *arguments)
         print_list(list);
 
         // For each client:
-        for (curr = list->head; curr != NULL; curr = curr->next) {
-
-            // Get the current time.
-            curr_time = get_time();
-            snprintf(buf, BUF_LEN, "Current time is %s", curr_time);
-
+        for (curr = &list->head; curr != NULL; curr = curr->next) {
             printf("[send] Curr client is: %s\n", print_client_buf(curr->client, name));
 
             // We create a sockaddr_in to store the details of the
@@ -223,9 +212,9 @@ int send_handler(void *arguments)
             // host/port from the client_info struct.
             struct sockaddr_in sockaddr_to = {0};
             socklen_t to_len = sizeof(sockaddr_to);
-            fill_sockaddr(&sockaddr_to, curr->client.host, curr->client.port);
+            fill_sockaddr(&sockaddr_to, curr->client->host, curr->client->port);
 
-            printf("[send] Sending time to %s listening at %d at time %s\n", curr->client.host, curr->client.port, curr_time);
+            printf("[send] Sending time to %s listening at %d\n", curr->client->host, curr->client->port);
 
             send_wrapper(client_fd, buf, &sockaddr_to, &to_len, "send");
         }
@@ -247,7 +236,49 @@ int send_handler(void *arguments)
         sleep(UPDATE_INTERVAL);
 
     }
-    return EXIT_SUCCESS;
+}
+
+
+void *prime(){
+    int *number, worker, i, flag;
+    worker = x+1;
+    registe(worker);
+
+    while (1)
+    {                     
+        number = (int *)recv_handler((void *)worker);
+        flag =1;
+
+        // Iterate from 2 to sqrt(n)
+        for (i = 2; i <= sqrt(*number); i++)
+        {
+            // If the Number is Divisible by any Number between 2 and n/2, it is not Prime
+            if (*number % i == 0)
+            {
+                flag = 0;
+                break;
+            }
+        }
+
+        if (*number <= 1)
+        {
+            flag = 0; 
+        }
+
+        // If the Number is Prime, send it 1 or send it 0
+        if (flag)
+        {
+            send_handler((void *)1);//send 1
+        }     
+        else
+        {
+            send_handler((void *)0);//send 0
+        }         
+    }
+    unregister(worker);
+    printf("Seeeeeeee meee\n");  
+
+    return 0;
 }
 
 
@@ -266,6 +297,7 @@ int main(int argc, char *argv[]) {
     // recvfrom functions later.
     int server_fd = socket(AF_INET, SOCK_DGRAM, 0);
     int client_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    x= 0;
 
     // Create the sockaddr that the server will use to send data to the
     // client.
@@ -283,22 +315,26 @@ int main(int argc, char *argv[]) {
     // Create a new list, to keep track of the clients.
     // The list struct also contains a mutex and a condition variable
     // (equivalent to Python's threading.Condition()).
-    List_t list = list_new();
-    List_t list2 = list_new();
+    List_t *list;
+    list = list_new();
+    //List_t list2 = list_new();
 
     // Create an args struct for each thread. Both structs have a
     // pointer to the same list, but different sockets (different file
     // descriptors).
-    Args_t server_info = new_args(list, server_fd);
-    Args_t client_info = new_args(list, client_fd);
+    Args_t *server_info = new_args(list, server_fd);
+    Args_t *client_info = new_args(list, client_fd);
 
     // Create the threads.
     pthread_t recv_thread;
     pthread_t send_thread;
+    pthread_t multi_thread;
+    pthread_t pingpong_thread;
 
-    pthread_create(&multi_thread, )
-    pthread_create(&recv_thread, recv_handler, (void *) server_info);
-    pthread_create(&send_thread, send_handler, (void *) client_info);
+    pthread_create(&multi_thread, NULL, multicast, NULL);
+    pthread_create(&pingpong_thread, NULL, ping_pong, NULL);
+    pthread_create(&recv_thread, NULL, recv_handler, &server_info);
+    pthread_create(&send_thread, NULL, send_handler, &client_info);
 
     while (1) {
         // Equivalent to `sleep(0.1)`
@@ -315,10 +351,10 @@ int main(int argc, char *argv[]) {
     close(client_fd);
 
     // Clean up the threads.
-    int retval;
+    void **retval;
     
-    pthread_join(recv_thread, &retval);
-    pthread_join(send_thread, &retval);
+    pthread_join(recv_thread, retval);
+    pthread_join(send_thread, retval);
 
     // Free the memory for the linked list of clients.
     // This also frees the mutex and condition.

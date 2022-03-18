@@ -93,7 +93,7 @@ Node_t *list_find(List_t *list, Info_t *client) {
 
     for (curr = list->head; curr != NULL; curr = curr->next) 
     {
-        if (list_find(curr->client, client)) 
+        // if (list_find(curr->client, client)) 
         found = curr;
     }
     return found;
@@ -472,6 +472,7 @@ void *ping_pong()
       sleep(5);
       printf("Send OK\n");
    }
+   return 0;
 }
 
 int checksum(char str[], int lenth){

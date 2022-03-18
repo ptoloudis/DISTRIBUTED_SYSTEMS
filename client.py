@@ -1,6 +1,3 @@
-from ast import While
-from email import message
-from lib2to3.pytree import NodePattern
 import socket
 from time import sleep
 from random import uniform
@@ -8,7 +5,6 @@ import threading
 from library.buffer import *
 from library.messege import *
 from library.serveries import *
-
 
 PORT_MESS = 5010
 MCAST_PORT = 5006
@@ -21,8 +17,6 @@ TTL = 5
 UDP_PORT = 5005
 Blabi = False
 servs = serveries()
-send_buffer = buffer_send(10)
-re_buffer = buffer_re(10)
 
 def multicast_send(sock, serve:str):
     for i in range(0, 3):
@@ -58,10 +52,10 @@ def multicast_send(sock, serve:str):
 def ping_pong():
     while True:
         find = False
-        for i in range(0, 3):
+        for i in range(0, 20):
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
-            sock.sendto(b"Pong", (IP_server, Ping_pong_port))
+            sock.sendto("Pong".encode(), (IP_server, Ping_pong_port))
             UDP_IP =  sock.getsockname()[0]
             sock2 = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
             sock2.bind((UDP_IP, Ping_pong_port2))
@@ -69,6 +63,7 @@ def ping_pong():
             try:
                 dat, addr = sock2.recvfrom(50) # buffer size is 1024 bytes 
                 print("UP")
+                IP_server = addr[0]
                 find = True
                 break   
             except socket.timeout:
@@ -81,25 +76,25 @@ def ping_pong():
         else:
             sleep(5)#5 seconds
 
-def send(svcid, reqbuf, reqlen):
+def send(self,svcid, reqbuf, reqlen):
     tmp = messeges(svcid, reqbuf, reqlen)
     id = tmp.return_id()
-    send_buffer.add(tmp)
-    tmp = re_buffer.get(id)
-    return tmp
+    self.send_buffer.add(tmp)
+    tmp = self.re_buffer.get(id)
+    return tmp.messege
+    
 
 def send_messeger():
     while True:
         tmp = send_buffer.get()
-        mess_len = len(tmp.messege).encode()
-
-        message_send = mess_len +'_1_'+ tmp.checksum.encode() +tmp.return_id().encode()+'_'+tmp.messege
+        message_send = tmp.messege_length +  "_1_"+ tmp.checksum +tmp.return_id()+"_"+tmp.messege 
         if (servs.get_id(tmp.destination) == 0 ):
             if(multicast_send(tmp.destination) == 0):
                 print("Server not found")
                 return -1;
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, TTL)
+        x = threading.Thread(ping_pong)
         for i in range (0, 5):
             sock.settimeout(uniform(3,6))
             try:
@@ -123,25 +118,47 @@ def send_messeger():
                 re_buffer.add(mess) 
         else:
             sock.sendto("1_1_0".encode(), (servs.get_ip(),PORT_MESS))
+        z.kill()
 
- 
+def send_to_server(file_name:Str, svrid:int):
+    file = open(file_name, "rb")
+    while True:
+        data = file.read(1024)
+        if not data:
+            break
+        print(data," is ",send(svrid, data, len(data)))
+    file.close()
+
 ## MAIN ##
 
-
+send_buffer = buffer_send(10)
+re_buffer = buffer_re(10)
 transport = False
-x = threading.Thread(target=send_messeger)
-z = threading.Thread(target=ping_pong)
+i = 0;
+z= [0,0,0,0,0,0,0,0,0,0]
+
+x = threading.Thread(send_messeger)
 x.start()
-z.start()
+for i in range(0, 10):
+    file_name = input("Enter file name: ")
+    if file_name == "exit" or Blabi == True:
+        break
+    while True:
+        svrid = int(input("Enter server id: "))
+        if (svrid ):
+            break
+        else:
+            print("Enter a valid server id")
+    z[i]= threading.Thread(send_to_server(file_name, svrid))
+    z[i].start()
 
-k = input("Enter the service id: ")
-j = input("Enter the request: ")
-
-print(send(k, j, len(j)))
 while True:
+    
     if (Blabi):
         print("Fail to connect to server")
         print("Server Down")
         x.kill()
-        z.kill()
         exit() 
+        for k in range(0, i):
+            z[k].kill()
+    

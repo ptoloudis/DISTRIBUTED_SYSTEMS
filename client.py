@@ -1,22 +1,28 @@
 from ast import While
 from email import message
+from lib2to3.pytree import NodePattern
 import socket
 from time import sleep
 from random import uniform
 import threading
-from buffer_cl import *
+from library.buffer import *
+from library.messege import *
+from library.serveries import *
+
 
 PORT_MESS = 5010
 MCAST_PORT = 5006
 MCAST_GRP = '224.1.1.1'
 Ping_pong_port = 5007
 Ping_pong_port2 = 5008
-IP_server = "";
+IP_server = None
 MULTICAST_TTL = 2
 TTL = 5
 UDP_PORT = 5005
 Blabi = False
 servs = serveries()
+send_buffer = buffer_send(10)
+re_buffer = buffer_re(10)
 
 def multicast_send(sock, serve:str):
     for i in range(0, 3):
@@ -55,7 +61,7 @@ def ping_pong():
         for i in range(0, 3):
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
-            sock.sendto("Pong".encode(), (IP_server, Ping_pong_port))
+            sock.sendto(b"Pong", (IP_server, Ping_pong_port))
             UDP_IP =  sock.getsockname()[0]
             sock2 = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
             sock2.bind((UDP_IP, Ping_pong_port2))
@@ -63,7 +69,6 @@ def ping_pong():
             try:
                 dat, addr = sock2.recvfrom(50) # buffer size is 1024 bytes 
                 print("UP")
-                IP_server = addr[0]
                 find = True
                 break   
             except socket.timeout:
@@ -76,18 +81,19 @@ def ping_pong():
         else:
             sleep(5)#5 seconds
 
-def send(self,svcid, reqbuf, reqlen, resbuf, reslen):
+def send(svcid, reqbuf, reqlen):
     tmp = messeges(svcid, reqbuf, reqlen)
     id = tmp.return_id()
-    self.send_buffer.add(tmp)
-    tmp = self.re_buffer.get(id)
-    resbuf = tmp.messege
-    reslen = tmp.messege_length
+    send_buffer.add(tmp)
+    tmp = re_buffer.get(id)
+    return tmp
 
 def send_messeger():
     while True:
         tmp = send_buffer.get()
-        message_send = tmp.messege_length +  "_1_"+ tmp.checksum +tmp.return_id()+"_"+tmp.messege 
+        mess_len = len(tmp.messege).encode()
+
+        message_send = mess_len +'_1_'+ tmp.checksum.encode() +tmp.return_id().encode()+'_'+tmp.messege
         if (servs.get_id(tmp.destination) == 0 ):
             if(multicast_send(tmp.destination) == 0):
                 print("Server not found")
@@ -121,14 +127,17 @@ def send_messeger():
  
 ## MAIN ##
 
-send_buffer = buffer_send(10)
-re_buffer = buffer_re(10)
-id()
+
 transport = False
-x = threading.Thread(send_messeger)
-z = threading.Thread(ping_pong)
+x = threading.Thread(target=send_messeger)
+z = threading.Thread(target=ping_pong)
 x.start()
 z.start()
+
+k = input("Enter the service id: ")
+j = input("Enter the request: ")
+
+print(send(k, j, len(j)))
 while True:
     if (Blabi):
         print("Fail to connect to server")
@@ -136,5 +145,3 @@ while True:
         x.kill()
         z.kill()
         exit() 
-    
-#TODO App in client

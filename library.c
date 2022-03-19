@@ -1,3 +1,9 @@
+/*
+Team : 1
+Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+AEM : 03121 & 02995
+*/
+
 #include "header.h"
 #include <math.h>
 
@@ -12,18 +18,18 @@ Args_t *new_args(List_t *list, int fd)
     return args;
 }
 
-
-
-///////////////
+// Function that Prints Client's Info (host, port).
 void print_client(Info_t *client) {
     printf("%s:%d\n", client->host, client->port);
 }
 
+// Function that Prints Client's Buffer Info.
 char *print_client_buf(Info_t *client, char *buf) {
     sprintf(buf, "%s:%d", client->host, client->port);
     return buf;
 }
 
+// Function that Prints the List of Clients.
 void print_list(List_t *list) 
 {
     printf("---------------\n");
@@ -34,12 +40,9 @@ void print_list(List_t *list)
     for (curr = list->head; curr != NULL; curr = curr->next) {
         printf("%s -> ", print_client_buf(curr->client, name));
     }
-
-    printf("X\n");
-    printf("---------------\n");
-
 }
 
+// Function Creates the List and Initializes the Mutex and Conditions.
 List_t *list_new(void) 
 {
     List_t *list = calloc(1, sizeof(*list));
@@ -50,6 +53,7 @@ List_t *list_new(void)
     return list;
 }
 
+// Function that Creates a new Node for the List.
 Node_t *new_node(Info_t *client) 
 {
     Node_t *node = calloc(1, sizeof(*node));
@@ -57,6 +61,7 @@ Node_t *new_node(Info_t *client)
     return node;
 }
 
+// Function that Adds the new Node in the List.
 void list_add_node(List_t *list, Node_t *node) 
 {
     assert(list != NULL);
@@ -76,6 +81,7 @@ void list_add_node(List_t *list, Node_t *node)
     }
 }
 
+// Function that inserts Node and Info (host, port) in the List.
 void list_add(List_t *list, Info_t *client) 
 {
     printf("Adding a client: "); 
@@ -98,10 +104,12 @@ Node_t *list_find(List_t *list, Info_t *client) {
     return found;
 }
 
+// Function to Free Nodes Memory.
 void node_destroy(Node_t *node) {
     free(node);
 }
 
+// Function to Remove a Client from Buffer.
 void list_remove_client(List_t *list, Info_t *client) 
 {
     printf("Removing a client: "); 
@@ -111,6 +119,7 @@ void list_remove_client(List_t *list, Info_t *client)
     list_remove(list, to_remove);
 }
 
+//Function that Clears the whole Buffer.
 void list_remove(List_t *list, Node_t *to_remove) 
 {
     if (to_remove == NULL) {
@@ -135,6 +144,7 @@ void list_remove(List_t *list, Node_t *to_remove)
 
 }
 
+// Function Frees the Memory used by the Buffer and Destroys the Mutex and Conditions.
 void list_destroy(List_t *list) 
 {
     Node_t *curr = NULL;
@@ -167,15 +177,6 @@ void file_create(Info_t *client)
         printf("Can't open file\n");
         return;
     }
- 
-    // // Asking user input for the
-    // // new record to be added
-    // printf("\nEnter Account Holder Name\n");
-    // scanf("%s", );
-    // printf("\nEnter Account Number\n");
-    // scanf("%d", &port);
-    // printf("\nEnter Available Amount\n");
-    // scanf("%d", &service_id);
  
     // Saving data in file
     fprintf(fp, "%s, %d\n", client->host, client->port);
@@ -267,7 +268,6 @@ int size()
         return -1;
     }
     rewind(fl);
-    //j = fseek(fl, 0L, SEEK_SET);
     if (j == -1) 
     {
         ferror(fl);
@@ -287,51 +287,63 @@ int size()
 
 ///////////////////////////
 
-
 pthread_mutex_t lock;
-int servevies[3];
-int num_servevies = 0;
+int services[3];
+int num_of_services = 0;
 
-int registe(int svcid){
-   pthread_mutex_lock(&lock);
-   while(num_servevies >= 3){}
+int register_Server(int svcid)
+{
+    pthread_mutex_lock(&lock);
+    while(num_of_services >= 3){}
 
-   servevies[num_servevies] = svcid;
-   num_servevies++;
-   pthread_mutex_unlock(&lock);
-   return 0;
+    services[num_of_services] = svcid;
+    num_of_services++;
+    pthread_mutex_unlock(&lock);
+
+    return 0;
 }
 
-int unregister(int svcid){
-   for(int i = 0; i < num_servevies; i++){
-      if(servevies[i] == svcid){
-         servevies[i] = 0;
-         num_servevies--;
-         return 0;
+
+
+int unregister_Server(int svcid)
+{
+    int i;
+    for(i = 0; i < num_of_services; i++)
+    {
+      if(services[i] == svcid)
+      {
+        services[i] = 0;
+        num_of_services--;
+        return 0;
       }
    }
    return 0;
 }
 
-int find_service(int svcid){
-   for(int i = 0; i < num_servevies; i++){
-      if(servevies[i] == svcid){
-         return 1;
+int find_service(int svcid)
+{
+    int i;
+    for(i = 0; i < num_of_services; i++)
+    {
+      if(services[i] == svcid)
+      {
+        return 1;
       }
-   }
+    }
    return 0;
 }
 
-void *multicast(){
+void *multicast()
+{
    struct sockaddr_in addr,addr2;
    int addr2len, sock, cnt;
    unsigned int addrlen;
-   struct ip_mreq mreq;
    char message[50], message2[50]={0};
 
-   /* set up socket */
+   // Set up Socket. 
    sock = socket(AF_INET, SOCK_DGRAM, 0);
-   if (sock < 0) {
+   if (sock < 0) 
+   {
      perror("socket");
      exit(1);
    }
@@ -348,24 +360,15 @@ void *multicast(){
    addr2len = sizeof(addr2);
 
 
-   /* receive */
-   if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) {        
-      perror("bind");
-      exit(1);
-   }   
+   // Receive.
+    if (bind(sock, (struct sockaddr *) &addr, sizeof(addr)) < 0) 
+    {        
+        perror("bind");
+        exit(1);
+    }   
 
-   char *ptr = strtok(source_iface, ",");
-//    while (ptr) { 
-//    mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
-//       mreq.imr_interface.s_addr = inet_addr(ptr);        
-//       if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-//             &mreq, sizeof(mreq)) < 0) {
-//             perror("setsockopt mreq");
-//             exit(1);
-//          }         
-//       ptr = strtok(NULL, ",");
-//    }
-   while (1) {
+    while (1) 
+    {
       cnt = recvfrom(sock, message, sizeof(message), 0, 
       (struct sockaddr *) &addr, &addrlen);
       if (cnt < 0) {
@@ -395,7 +398,7 @@ void *multicast(){
       }
       sleep(5);
       printf("Send OK\n");
-   }
+    }
    return 0;
 
 }
@@ -406,7 +409,6 @@ void *ping_pong()
    struct sockaddr_in addr,addr2;
    int addr2len, sock, cnt;
    unsigned int addrlen;
-   struct ip_mreq mreq;
    char message[50], message2[50]={0};
    strcat(message2,"PONG");
 
@@ -435,17 +437,6 @@ void *ping_pong()
       exit(1);
    }   
 
-   char *ptr = strtok(source_iface, ",");
-//    while (ptr) { 
-//    mreq.imr_multiaddr.s_addr = inet_addr(EXAMPLE_GROUP);         
-//       mreq.imr_interface.s_addr = inet_addr(ptr);        
-//       if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-//             &mreq, sizeof(mreq)) < 0) {
-//             perror("setsockopt mreq");
-//             exit(1);
-//          }         
-//       ptr = strtok(NULL, ",");
-//    }
    while (1) {
       cnt = recvfrom(sock, message, sizeof(message), 0, 
       (struct sockaddr *) &addr, &addrlen);

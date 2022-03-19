@@ -1,3 +1,9 @@
+/*
+Team : 1
+Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+AEM : 03121 & 02995
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -13,9 +19,10 @@
 #include <netdb.h>
 #include <ncurses.h>
 
-#define SERVER_IP "127.0.0.1" ////?????????
+/********************** DEFINITIONS **********************/
+
+#define SERVER_IP "127.0.0.1" 
 #define SERVER_PORT 12000
-#define UPDATE_INTERVAL 1
 #define BUF_LEN 1024
 
 
@@ -26,13 +33,12 @@
 #define Ping_pong_port2 5008
 
 
+/********************** STRUCTS **********************/
+
 typedef struct arguments Args_t;
 typedef struct client_node Node_t;
 typedef struct client_list List_t;
 typedef struct client_info Info_t;
-
-// Arguments struct (and creation function) to pass the required info
-// into the thread handlers.
 
 struct client_info 
 {
@@ -59,16 +65,10 @@ struct arguments {
     int fd;
 };
 
-
-
-
-
+/********************** FUNCTIONS **********************/
 
 Args_t *new_args(List_t *list, int fd);
 
-
-
-///////////////
 void print_client(Info_t *client);
 
 char *print_client_buf(Info_t *client, char *buf);
@@ -82,7 +82,7 @@ Node_t *new_node(Info_t *client);
 void list_add_node(List_t *list, Node_t *node);
 
 void list_add(List_t *list, Info_t *client);
-// Returns the node, or NULL if not found.
+
 Node_t *list_find(List_t *list, Info_t *client);
 
 void node_destroy(Node_t *node);
@@ -99,15 +99,9 @@ void file_out();
 
 int size() ;
 
+int register_Server(int svcid);
 
-///////////////////////////
-
-
-
-
-int registe(int svcid);
-
-int unregister(int svcid);
+int unregister_Server(int svcid);
 
 int find_service(int svcid);
 

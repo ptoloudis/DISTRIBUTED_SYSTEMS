@@ -1,14 +1,14 @@
-from library.messege import *
+from library.message import *
 class buffer_send:
     def __init__(self,size_max):
         self.max = size_max
         self.data = []
         self.cur = 0
 
-    def add(self, messege: messeges):
+    def add(self, message: messages):
         while(self.cur >= self.max):
             pass
-        self.data.append(messege)
+        self.data.append(message)
         self.cur += 1
     
     def get(self):
@@ -24,10 +24,10 @@ class buffer_re:
         self.data = []
         self.cur = 0
 
-    def add(self, messege: messeges):
+    def add(self, message: messages):
         while(self.cur >= self.max):
             pass
-        self.data.append(messege)
+        self.data.append(message)
         self.cur += 1
     
     def get(self, id):
@@ -40,6 +40,6 @@ class buffer_re:
 
     def find(self, mes: str):
         for i in range(self.cur):
-            if(self.data[i].messege == str):
+            if(self.data[i].message == str):
                 return 0
         return 1

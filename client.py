@@ -7,7 +7,7 @@ from library.messages import *
 from library.services import *
 from library.id import *
 
-PORT_MESS = 5010
+PORT_MESS = 12000
 MCAST_PORT = 5006
 MCAST_GRP = '224.1.1.1'
 Ping_pong_port = 5007

@@ -307,11 +307,13 @@ int main(int argc, char *argv[])
     pthread_t send_thread;
     pthread_t multi_thread;
     pthread_t pingpong_thread;
+    pthread_t prime_thread;
 
     pthread_create(&multi_thread, NULL, multicast, NULL);
     pthread_create(&pingpong_thread, NULL, ping_pong, NULL);
     pthread_create(&recv_thread, NULL, recv_handler, &server_info);
     pthread_create(&send_thread, NULL, send_handler, &client_info);
+    pthread_create(&prime_thread, NULL, prime, NULL);
 
     while (1) {
         sleep(1);

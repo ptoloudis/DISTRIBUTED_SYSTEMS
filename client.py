@@ -76,11 +76,11 @@ def ping_pong():
         else:
             sleep(5)#5 seconds
 
-def send(self,svcid, reqbuf, reqlen):
+def send(svcid, reqbuf, reqlen):
     tmp = messeges(svcid, reqbuf, reqlen)
     id = tmp.return_id()
-    self.send_buffer.add(tmp)
-    tmp = self.re_buffer.get(id)
+    send_buffer.add(tmp)
+    tmp = re_buffer.get(id)
     return tmp.messege
     
 
@@ -94,7 +94,7 @@ def send_messeger():
                 return -1;
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, TTL)
-        x = threading.Thread(ping_pong)
+        x = threading.Thread(target=ping_pong)
         for i in range (0, 5):
             sock.settimeout(uniform(3,6))
             try:
@@ -120,13 +120,14 @@ def send_messeger():
             sock.sendto("1_1_0".encode(), (servs.get_ip(),PORT_MESS))
         z.kill()
 
-def send_to_server(file_name:Str, svrid:int):
+def send_to_server(file_name, svrid):
     file = open(file_name, "rb")
     while True:
         data = file.read(1024)
         if not data:
             break
-        print(data," is ",send(svrid, data, len(data)))
+        x = len(data) 
+        send(svrid, data, x )
     file.close()
 
 ## MAIN ##
@@ -137,7 +138,7 @@ transport = False
 i = 0;
 z= [0,0,0,0,0,0,0,0,0,0]
 
-x = threading.Thread(send_messeger)
+x = threading.Thread(target=send_messeger)
 x.start()
 for i in range(0, 10):
     file_name = input("Enter file name: ")
@@ -149,7 +150,7 @@ for i in range(0, 10):
             break
         else:
             print("Enter a valid server id")
-    z[i]= threading.Thread(send_to_server(file_name, svrid))
+    z[i]= threading.Thread(target=send_to_server(file_name, svrid))
     z[i].start()
 
 while True:

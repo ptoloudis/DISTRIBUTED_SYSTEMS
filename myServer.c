@@ -228,13 +228,15 @@ void *send_handler(void *arguments)
 void *prime()
 {
     int *number, worker, i, flag;
+    Args_t kati;
 
     worker = x + 1;
+    kati.fd = worker;
     register_Server(worker);
 
     while (1)
     {                     
-        number = (int *)recv_handler((void *)&worker);
+        number = (int*)recv_handler(&kati);
         flag =1;
 
         // Iterate from 2 to sqrt(n)

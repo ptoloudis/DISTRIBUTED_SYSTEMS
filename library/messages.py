@@ -1,12 +1,12 @@
 from library.hash import hash
+from library.id import *
 
-class messages:
-    def __init___(self, destination, message, message_length):
+class myMes:
+    def __init__(self, destination, message, Id):
         self.destination = destination
         self.message = message
         self.checksum = hash(message)
-        self.message_length = message_length
-        self.id = id.get_id()
-
+        self.message_length = len(message)
+        self.id = Id.get_id()
     def return_id(self):
         return self.id

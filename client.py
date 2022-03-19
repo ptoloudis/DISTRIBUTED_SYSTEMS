@@ -3,8 +3,9 @@ from time import sleep
 from random import uniform
 import threading
 from library.buffer import *
-from library.message import *
+from library.messages import *
 from library.services import *
+from library.id import *
 
 PORT_MESS = 5010
 MCAST_PORT = 5006
@@ -17,6 +18,7 @@ TTL = 5
 UDP_PORT = 5005
 Damage = False
 servs = services()
+id = Id()
 
 def multicast_send(sock, serve:str):
     for i in range(0, 3):
@@ -76,17 +78,20 @@ def ping_pong():
         else:
             sleep(5)#5 seconds
 
-def send(self,svcid, reqbuf, reqlen):
-    tmp = messages(svcid, reqbuf, reqlen)
+def send(svcid, reqbuf):
+    global id
+    tmp = myMes(svcid, reqbuf, id)
     id = tmp.return_id()
-    self.send_buffer.add(tmp)
-    tmp = self.re_buffer.get(id)
+    send_buffer.add(tmp)
+    tmp = re_buffer.get(id)
     return tmp.messege
     
-
 def send_messeger():
     while True:
         tmp = send_buffer.get()
+        while tmp == None:
+            tmp = send_buffer.get()
+        
         message_send = tmp.messege_length +  "_1_"+ tmp.checksum +tmp.return_id()+"_"+tmp.messege 
         if (servs.get_id(tmp.destination) == 0 ):
             if(multicast_send(tmp.destination) == 0):
@@ -123,10 +128,12 @@ def send_messeger():
 def send_to_server(file_name:str, svrid:int):
     file = open(file_name, "rb")
     while True:
-        data = file.read(1024)
+        data = file.readline(1024)
         if not data:
             break
-        print(data," is ",send(svrid, data, len(data)))
+        data = data.decode("utf-8")
+        data.replace('\n',"")
+        send(svrid, data)
     file.close()
 
 ## MAIN ##

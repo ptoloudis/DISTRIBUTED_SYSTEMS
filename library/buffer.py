@@ -1,11 +1,11 @@
-from library.message import *
+from library.messages import *
 class buffer_send:
     def __init__(self,size_max):
         self.max = size_max
         self.data = []
         self.cur = 0
 
-    def add(self, message: messages):
+    def add(self, message: myMes):
         while(self.cur >= self.max):
             pass
         self.data.append(message)
@@ -24,7 +24,7 @@ class buffer_re:
         self.data = []
         self.cur = 0
 
-    def add(self, message: messages):
+    def add(self, message: myMes):
         while(self.cur >= self.max):
             pass
         self.data.append(message)

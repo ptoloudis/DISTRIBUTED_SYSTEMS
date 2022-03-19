@@ -3,8 +3,8 @@ from time import sleep
 from random import uniform
 import threading
 from library.buffer import *
-from library.messege import *
-from library.serveries import *
+from library.message import *
+from library.services import *
 
 PORT_MESS = 5010
 MCAST_PORT = 5006
@@ -15,8 +15,8 @@ IP_server = None
 MULTICAST_TTL = 2
 TTL = 5
 UDP_PORT = 5005
-Blabi = False
-servs = serveries()
+Damage = False
+servs = services()
 
 def multicast_send(sock, serve:str):
     for i in range(0, 3):
@@ -44,10 +44,10 @@ def multicast_send(sock, serve:str):
     if data == 49 :
         print("Server found")
         servs.add_id(serve, addr[0], addr[1])
-        return 1;
+        return 1
     else :
         print("Server not found")
-        return 0;
+        return 0
 
 def ping_pong():
     while True:
@@ -70,17 +70,17 @@ def ping_pong():
                 continue
         
         if find == False:
-            Blabi = True
+            Damage = True
             print("Server Down")
             exit()
         else:
             sleep(5)#5 seconds
 
-def send(svcid, reqbuf, reqlen):
-    tmp = messeges(svcid, reqbuf, reqlen)
+def send(self,svcid, reqbuf, reqlen):
+    tmp = messages(svcid, reqbuf, reqlen)
     id = tmp.return_id()
-    send_buffer.add(tmp)
-    tmp = re_buffer.get(id)
+    self.send_buffer.add(tmp)
+    tmp = self.re_buffer.get(id)
     return tmp.messege
     
 
@@ -91,10 +91,10 @@ def send_messeger():
         if (servs.get_id(tmp.destination) == 0 ):
             if(multicast_send(tmp.destination) == 0):
                 print("Server not found")
-                return -1;
+                return -1
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, TTL)
-        x = threading.Thread(target=ping_pong)
+        x = threading.Thread(ping_pong)
         for i in range (0, 5):
             sock.settimeout(uniform(3,6))
             try:
@@ -120,14 +120,13 @@ def send_messeger():
             sock.sendto("1_1_0".encode(), (servs.get_ip(),PORT_MESS))
         z.kill()
 
-def send_to_server(file_name, svrid):
+def send_to_server(file_name:str, svrid:int):
     file = open(file_name, "rb")
     while True:
         data = file.read(1024)
         if not data:
             break
-        x = len(data) 
-        send(svrid, data, x )
+        print(data," is ",send(svrid, data, len(data)))
     file.close()
 
 ## MAIN ##
@@ -135,14 +134,14 @@ def send_to_server(file_name, svrid):
 send_buffer = buffer_send(10)
 re_buffer = buffer_re(10)
 transport = False
-i = 0;
+i = 0
 z= [0,0,0,0,0,0,0,0,0,0]
 
-x = threading.Thread(target=send_messeger)
+x = threading.Thread(target = send_messeger)
 x.start()
 for i in range(0, 10):
     file_name = input("Enter file name: ")
-    if file_name == "exit" or Blabi == True:
+    if file_name == "exit" or Damage == True:
         break
     while True:
         svrid = int(input("Enter server id: "))
@@ -150,12 +149,12 @@ for i in range(0, 10):
             break
         else:
             print("Enter a valid server id")
-    z[i]= threading.Thread(target=send_to_server(file_name, svrid))
+    z[i]= threading.Thread(send_to_server(file_name, svrid))
     z[i].start()
 
 while True:
     
-    if (Blabi):
+    if (Damage):
         print("Fail to connect to server")
         print("Server Down")
         x.kill()

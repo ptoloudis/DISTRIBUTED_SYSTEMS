@@ -1,7 +1,6 @@
 import numpy as np
 
 def hash(mes):
-    print(mes)
     hash = 0
     for i in range(len(mes)):
         data =  ord(mes[i])

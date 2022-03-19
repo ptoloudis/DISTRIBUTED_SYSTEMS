@@ -20,7 +20,7 @@ Damage = False
 servs = services()
 id = Id()
 
-def multicast_send(sock, serve:str):
+def multicast_send( serve:str):
     for i in range(0, 3):
         print("Try to find the server")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -88,13 +88,13 @@ def send(svcid, reqbuf):
     
 def send_messeger():
     while True:
-        tmp = send_buffer.get()
+        tmp:myMes = send_buffer.get()
         while tmp == None:
             tmp = send_buffer.get()
         
-        message_send = tmp.messege_length +  "_1_"+ tmp.checksum +tmp.return_id()+"_"+tmp.messege 
+        message_send = "%d_1_%d_%d_%s" %(tmp.return_message_length(), tmp.return_checksum(), tmp.return_id(), tmp.return_message()) 
         if (servs.get_id(tmp.destination) == 0 ):
-            if(multicast_send(tmp.destination) == 0):
+            if(multicast_send(chr(tmp.destination)) == 0):
                 print("Server not found")
                 return -1
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

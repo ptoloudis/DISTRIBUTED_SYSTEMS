@@ -10,3 +10,11 @@ class myMes:
         self.id = Id.get_id()
     def return_id(self):
         return self.id
+    def return_message(self):
+        return self.message
+    def return_destination(self):
+        return self.destination
+    def return_checksum(self):
+        return self.checksum
+    def return_message_length(self):
+        return self.message_length

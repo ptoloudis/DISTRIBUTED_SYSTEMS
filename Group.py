@@ -1,6 +1,6 @@
 class Group:
     def __init__(self, group_name):
-        self.group_name = group_name
+        self.group_name: String = group_name
         self.members: Process_Info = []
 
     def add_member(self, member):
@@ -10,10 +10,24 @@ class Group:
         return self.members
 
     def find_members(self, member):
-        return member in self.members
+        for x in range(len(self.members)):
+            if self.members[x].process_name == member.process_name and self.members[x].host == member.host and self.members[x].port == member.port:
+                return x
+        return None
 
-    def remove_member(self, member):
-        self.members.remove(member)
+    def remove_member(self, x):
+        tmp = self.members[x]
+        self.members.remove(tmp)
+
+    def get_name(self):
+        return self.group_name
+
+    def toString(self):
+        str = self.group_name
+        for member in self.members:
+            str += "#" + member.toString()
+        return str
+
 
 class Group_List:
     def __init__(self):
@@ -31,11 +45,14 @@ class Group_List:
     def remove_group(self, group):
         self.groups.remove(group)
 
+
+
 class Process_Info:
-    def __init__(self, process_name, host, port):
+    def __init__(self, process_name, host, port: int):
         self.process_name = process_name
         self.host = host
         self.port = port
 
-    
+    def toString(self):
+        return self.process_name + " " + self.host + " " + str(self.port)
 

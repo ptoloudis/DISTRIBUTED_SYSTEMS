@@ -1,7 +1,7 @@
 #
-#Team : 1
-#Names : Apostolopoulou Ioanna & Toloudis Panagiotis
-#AEM : 03121 & 02995
+# Team : 1
+# Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+# AEM : 03121 & 02995
 #
 
 import socket
@@ -9,77 +9,129 @@ from random import uniform
 import threading
 import struct
 import sys
+from list import list_node, find_node, add_group
+from Group import *
 
 MCAST_PORT = 5006
 MCAST_GRP = '224.1.1.1'
-#IP_Manager = None
 MULTICAST_TTL = 2
 TTL = 5
 TCP_PORT = 5005
+TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+Stop_thread = False
+msq = None
+msq_r = None
+view = None
+list_of_processes = []
+
 
 class Process:
     def __init__(self):
         self.UDP_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.TCP_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.IP_Manager = None
-        self.counter = 0
+        self.thread = None
 
     def multicast_send(self, message):
         for i in range(0, 3):
             print("Try to find the server")
             self.UDP_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
             self.UDP_sock.sendto(message.encode(), (MCAST_GRP, MCAST_PORT))
-            self.UDP_sock.settimeout(uniform(3,6))
+            self.UDP_sock.settimeout(uniform(3, 6))
             try:
-                data, addr = self.UDP_sock.recvfrom(50) # buffer size is 1024 bytes
+                data, addr = self.UDP_sock.recvfrom(50)  # buffer size is 1024 bytes
                 self.IP_Manager = addr[0]
-                break  
+                break
             except socket.timeout:
                 print("Write timeout on socket")
                 continue
-        
+
     def join_group(self, group_name, myid):
+        global msq, msq_r, view
         print("I want to join the group")
-        message = "JOIN" + " " + group_name + " " + myid
-        if self.TCP_process(message):
+        while msq != None:
+            pass
+        msq = "JOIN" + " " + group_name + " " + myid
+        while msq_r == None:
+            pass
+        tmp = msq_r
+        msq_r = None
+        if tmp == "OK ":
             group_value = (11 * int(group_name)) + (5 * int(myid))
-            print(group_value)
+            while view == None:
+                pass
+            group = add_group(group_name, view)
+            view = None
+            x = list_node(myid, group, group_value)
+            list_of_processes.append(x)
             return (group_value)
-        else :
+        else:
             return -1
 
-    def leave_group(self, group_name, myid):
+    def leave_group(self, value):
+        global msq, msq_r, list_of_processes
+        find = find_node(list_of_processes, value)
+        name = find.get_group()
+        id = find.get_id()
         print("I want to leave the group")
-        message = "LEAVE" + " " + group_name + " " + myid
-        if self.TCP_process(message):
+        while msq != None:
+            pass
+        msq = "LEAVE" + " " + name + " " + id
+        while msq_r == None:
+            pass
+        tmp = msq_r
+        msq_r = None
+        if tmp == "OK":
+            list_of_processes.remove(find)
             return True
-        else :
+        else:
             return False
 
     def TCP(self):
+        global TCP_socket
         print("Try to connect...")
-        self.TCP_sock.connect((self.IP_Manager, TCP_PORT))
-        print("Connect Successfully")
+        TCP_socket.connect((self.IP_Manager, TCP_PORT))
+        print("Connected")
+        self.thread = threading.Thread(target=TCP_process)
+        self.thread.start()
+        print("Thread started")
 
-    def TCP_process(self, GM: str):
-        try:
-            # data = input("Enter the message: ")
-            self.TCP_sock.send(GM.encode())
-            data = self.TCP_sock.recv(1024)
-            print("Received message:", data.decode())
-            if "OK" in data.decode():
-                return True
+    def TCP_close(self):
+        global TCP_socket, Stop_thread
+        Stop_thread = True
+        TCP_socket.close()
+        print("TCP socket closed")
+        self.thread.join(timeout=1)
+        print("Thread closed")
+
+
+
+def TCP_process():
+    global msq, msq_r, TCP_socket, Stop_thread, view, list_of_processes
+    try:
+        while not Stop_thread:
+            if msq == None:
+                try:
+                    TCP_socket.settimeout(uniform(1, 3))
+                    tmp = TCP_socket.recv(1024)
+                    tmp = tmp.decode()
+                    while view != None:
+                        pass
+                    if "UPDATE" in tmp:
+                        print("Update received")
+                        x = tmp.find("#")
+                        y = add_group(tmp[6:x], tmp)
+                        replace_group(list_of_processes, y)
+                    elif "VIEW" in tmp:
+                        view = tmp[4:]
+                except:
+                    continue
             else:
-                return False
-        except KeyboardInterrupt:
-            return False
+                TCP_socket.send(msq.encode())
+                msq = None
+                data = TCP_socket.recv(3)
+                while msq_r != None:
+                    pass
+                msq_r = data.decode()
 
-
-    
-
-
-class Group_Info:
-    def __init__(self, group_name):
-        self.group_name = group_name
-        self.members: Process = []
-
+    except KeyboardInterrupt:
+        return

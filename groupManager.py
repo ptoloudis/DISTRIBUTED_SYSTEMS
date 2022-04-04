@@ -1,7 +1,7 @@
 #
-#Team : 1
-#Names : Apostolopoulou Ioanna & Toloudis Panagiotis
-#AEM : 03121 & 02995
+# Team : 1
+# Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+# AEM : 03121 & 02995
 #
 
 import socket
@@ -20,6 +20,9 @@ IP_Manager = None
 MULTICAST_TTL = 2
 TTL = 5
 TCP_PORT = 5005
+stop_threads = False
+update = []
+
 
 def multicast_receiver():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -30,18 +33,18 @@ def multicast_receiver():
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
     global stop_threads
     while not stop_threads:
-        sock.settimeout(uniform(3, 6))
+        sock.settimeout(uniform(1, 3))
         try:
-            data, addr = sock.recvfrom(1024)# buffer size is 1024 bytes
+            data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
             print("Received message:", data.decode())
             sock.sendto(data, addr)
         except:
             continue
-
+    sock.close()
 
 def Manager():
-    global IP_Manager
-    group_list = Group_List() 
+    global IP_Manager, stop_threads
+    group_list = Group_List()
     TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     TCP_socket.bind((IP_Manager, TCP_PORT))
     try:
@@ -55,55 +58,80 @@ def Manager():
             c_thread.start()
     except KeyboardInterrupt:
         print('\nShutting down Server...')
+        stop_threads = True
         TCP_socket.close()
 
 def handle_client(client_sock, client_address, group_list):
-    #""" Handle the accepted client's requests """
-    while True:
-        try:
-            data_enc = client_sock.recv(1024)
-            data = data_enc.decode()
-            if "JOIN" in data:
-                print("JOIN")
-                group_name = data.split(" ")[1]
-                id = data.split(" ")[2]
-                x = group_list.find_group(group_name)
-                member = Process_Info(id, client_address[0], client_address[1])
-                if x == None:
-                    x = Group(group_name)
-                    x.add_member(member)
-                    group_list.add_group(x)
-                    
-                    client_sock.sendall(b'OK')
-                else:
-                    if x.find_members(member):
-                        client_sock.sendall(b'NOK')
-                    else:
+    global stop_threads, update
+    my_group = []
+    len_update = 0
+    try:
+        while not stop_threads:
+            client_sock.settimeout(1)
+            try:
+                data_enc = client_sock.recv(1024)
+                data = data_enc.decode()
+                if "JOIN" in data:
+                    print("JOIN")
+                    group_name = data.split(" ")[1]
+                    id = data.split(" ")[2]
+                    x = group_list.find_group(group_name)
+                    member = Process_Info(id, client_address[0], client_address[1])
+                    if x == None:
+                        x = Group(group_name)
                         x.add_member(member)
-                        client_sock.sendall(b'OK')
-            elif "LEAVE" in data:
-                print("LEAVE")
-                group_name = data.split(" ")[1]
-                id = data.split(" ")[2]
-                x = group_list.find_group(group_name)
-                member = Process_Info(id, client_address[0], client_address[1])
-                if x == None:
-                    client_sock.sendall(b'NOK')
-                else:
-                    if x.find_members(member):
-                        x.remove_member(member)
-                        client_sock.sendall(b'OK')
+                        group_list.add_group(x)
+                        client_sock.sendall(b'OK ')
+                        my_group.append(group_name)
+                        tmp = "VIEW" + x.toString()
+                        print("SENDING:", tmp)
+                        client_sock.sendall(tmp.encode())
                     else:
+                        if x.find_members(member):
+                            client_sock.sendall(b'NOK')
+                        else:
+                            update.append(group_name)
+                            len_update += 1
+                            my_group.append(group_name)
+                            x.add_member(member)
+                            client_sock.sendall(b'OK ')
+                            tmp = "VIEW" + x.toString()
+                            print("SENDING:", tmp)
+                            client_sock.sendall(tmp.encode())
+                elif "LEAVE" in data:
+                    print("LEAVE")
+                    group_name = data.split(" ")[1]
+                    id = data.split(" ")[2]
+                    x = group_list.find_group(group_name)
+                    member = Process_Info(id, client_address[0], client_address[1])
+                    if x == None:
                         client_sock.sendall(b'NOK')
-        except OSError as err:
-            print(err)
-
-        # finally:
-        #     print(f'Closing client socket for {client_address}...')
-        #     client_sock.close()
-        #     print(f'Client socket closed for {client_address}')
-        #     break
-
+                    else:
+                        z = x.find_members(member)
+                        if z != None:
+                            x.remove_member(z)
+                            client_sock.sendall(b'OK')
+                            update.append(group_name)
+                            my_group.remove(group_name)
+                        else:
+                            client_sock.sendall(b'NOK')
+            except:
+                if len(update) > len_update:
+                    for i in range(len_update, len(update)):
+                        if update[i] in my_group:
+                            x = group_list.find_group(update[i])
+                            tmp = "UPDATE" + x.toString()
+                            print("UPDATE:", tmp)
+                            client_sock.sendall(tmp.encode())
+                            len_update = len(update)
+    except KeyboardInterrupt:
+        print('\nShutting down Client...')
+    except OSError as err:
+        print(err)
+    finally:
+        print(f'Closing client socket for {client_address}...')
+        client_sock.close()
+        print(f'Client socket closed for {client_address}')
 
 def GroupManager():
     global IP_Manager
@@ -125,7 +153,6 @@ def find_ip_server():
     s.close()
     return x
 
-
 def main():
     if (len(sys.argv) != 2):
         print("Wrong Argument")
@@ -135,24 +162,22 @@ def main():
     x = int(sys.argv[1])
     if x:
         y = Process()
-
         y.multicast_send('1')
         y.TCP()
-        z = y.join_group('1','5') # NOT Dynamic
+        z = y.join_group('1', '5')
+        if z != -1:
+            try:
+                input("Press Enter to continue...")
+            finally:
+                y.leave_group(z)
+                y.TCP_close()
 
-        
 
-        if z== 1:
-            print("Joined")
-            sleep(2)
-            y.leave_group('1','5')
-        
     else:
         global stop_threads
         stop_threads = False
         GroupManager()
     return 0
-
 
 if __name__ == '__main__':
     main()

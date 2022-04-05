@@ -35,7 +35,15 @@ class CATOC_RM:
     def Causal_RM_deliver(self, msg):
         if msg[0] == "CRM-MSG":
             self.myvote = self.myvote + 1
-            x = message
+            x = message(msg.split(" ")[1], self.myvote, "?",msg.split(" ")[3])
+            self.mbuf.append(x)
+            data = "CRM-VOTE " + str(self.mypid) + "." + str(self.seqno) + " " + str(self.myvote)
+            send(pid, data)
+        if msg[0] == "CRM-VOTE":
+            vote = msg.split(" ")[2]
+            self.myvote = max(self.myvote, vote.split(".")[0])
+            x = message(msg.split(" ")[1], "*", vote, "*")
+            self.mbuf.append(x)
             self.checkBuffer()
 
 
@@ -54,7 +62,8 @@ class CATOC_RM:
 
 
 class message:
-    def __init__(self, msg, myvote, vote):
+    def __init__(self, pid, myvote, vote , msg):
         self.msg = msg
         self.myvote = myvote
         self.vote = vote
+        self.pid = pid

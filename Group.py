@@ -56,3 +56,9 @@ class Process_Info:
     def toString(self):
         return self.process_name + " " + self.host + " " + str(self.port)
 
+    def get_name(self):
+        return self.process_name
+    def get_host(self):
+        return self.host
+    def get_port(self):
+        return self.port

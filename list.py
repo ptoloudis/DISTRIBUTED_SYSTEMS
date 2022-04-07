@@ -42,3 +42,21 @@ def replace_group(list, group):
     for node in list:
         if node.get_group == group.get_name():
             node.set_group(group)
+
+def add_pids(group: Group):
+    pids[len(group.get_members())] = []
+    members = group.get_members()
+
+    for tmp in members:
+        pid = Pids(tmp.get_host(), tmp.get_port())
+        pids.append(pid)
+    return pids
+
+class Pids:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+    def get_host(self):
+        return self.host
+    def get_port(self):
+        return self.port

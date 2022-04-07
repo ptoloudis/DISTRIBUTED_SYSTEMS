@@ -60,8 +60,9 @@ class Process:
             while view == None:
                 pass
             group = add_group(group_name, view)
+            x = add_pids(group)
             view = None
-            x = list_node(myid, group, group_value)
+            x = list_node(myid, group, group_value, x)
             list_of_processes.append(x)
             return (group_value)
         else:
@@ -119,8 +120,11 @@ def TCP_process():
                     if "UPDATE" in tmp:
                         print("Update received")
                         x = tmp.find("#")
+
                         y = add_group(tmp[6:x], tmp)
-                        replace_group(list_of_processes, y)
+                        z = add_pids(group)
+                        replace_group(list_of_processes, y, z)
+
                     elif "VIEW" in tmp:
                         view = tmp[4:]
                 except:

@@ -1,10 +1,11 @@
 from Group import Group, Process_Info
 
 class list_node:
-    def __init__(self, id, group: Group, value):
+    def __init__(self, id, group: Group, value, pids):
         self.id = id
         self.group = group
         self.value: int = value
+        self.pids = pids
     def get_value(self):
         return self.value
     def get_group(self):
@@ -13,6 +14,10 @@ class list_node:
         return self.id
     def set_group(self, group: Group):
         self.group = group
+    def set_pids(self, pids):
+        self.pids = pids
+    def get_pids (self):
+        return self.pids
     def toString(self):
         return self.id + " " + self.group.toString() + " " + str(self.value)
 
@@ -38,15 +43,16 @@ def add_group(Name, view):
         tmp.add_member(member)
     return tmp
 
-def replace_group(list, group):
+def replace_group(list, group, pids):
     for node in list:
         if node.get_group == group.get_name():
             node.set_group(group)
+            node.set_pids(pids)
+
 
 def add_pids(group: Group):
-    pids[len(group.get_members())] = []
+    pids = []
     members = group.get_members()
-
     for tmp in members:
         pid = Pids(tmp.get_host(), tmp.get_port())
         pids.append(pid)

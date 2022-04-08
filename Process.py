@@ -8,6 +8,7 @@ import socket
 from random import uniform
 import threading
 import struct
+import time
 import sys
 from list import *
 from Group import *
@@ -27,8 +28,10 @@ list_of_processes = []
 
 
 class Process:
-    def __init__(self):
-        self.UDP_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    def __init__(self, port):
+        self.UDP_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.UDP_sock.bind(('', port))
+        self.port = port
         self.IP_Manager = None
         self.thread = None
 
@@ -51,7 +54,7 @@ class Process:
         print("I want to join the group")
         while msg != None:
             pass
-        msg = "JOIN" + " " + group_name + " " + myid
+        msg = "JOIN" + " " + group_name + " " + myid + " " + str(self.port)
         while msg_r == None:
             pass
         tmp = msg_r
@@ -65,7 +68,7 @@ class Process:
             view = None
             x = list_node(myid, group, group_value, x)
             list_of_processes.append(x)
-            thread = threading.Thread(target= UDP_send , args = (self.UDP_sock)) 
+            threading.Thread(target=UDP_send, args=(self.UDP_sock))
             return (group_value)
         else:
             return -1
@@ -78,7 +81,7 @@ class Process:
         print("I want to leave the group")
         while msg != None:
             pass
-        msg = "LEAVE" + " " + name + " " + id
+        msg = "LEAVE" + " " + name + " " + id + " " + str(self.port)
         while msg_r == None:
             pass
         tmp = msg_r
@@ -106,15 +109,15 @@ class Process:
         self.thread.join(timeout=1)
         print("Thread closed")
 
-    def Group_Send(self, message, group_value, catoc):
+    def Group_Send(self, group_value, message, catoc):
         if catoc == 0:
             print("Sending Messages in Fifo order")
-            x :list_node = find_node(list_of_processes, group_value)
+            x: list_node = find_node(list_of_processes, group_value)
             y = FIFO_RM(x.get_pids())
             y.FIFO_RM_send(message)
         elif catoc == 1:
             print("Sending Messages in Catoc order")
-            x :list_node = find_node(list_of_processes, group_value)
+            x: list_node = find_node(list_of_processes, group_value)
             y = CATOC_RM(x.get_pids())
             y.CATOC_RM_send(message)
         else:
@@ -162,6 +165,28 @@ def TCP_process():
     except KeyboardInterrupt:
         return
 
-# class Communication_Process:
-#     def __init__(self):
+def main():
+    port = int(input("Enter the port number: "))
+    y = Process(port)
+    y.multicast_send('1')
+    y.TCP()
+    z = y.join_group('1', '5')
+    try:
+        if z != -1:
+            while True:
+                a = int(input("Press Enter to continue..."))
+                if a == 1:
+                    y.Group_Send(z, 'Hello', 1)
+                elif a == 0:
+                    y.Group_Send(z, 'Hello', 0)
+                elif a < 0:
+                    break
+                else:
+                    y.Group_Receive(z, 0)
+    finally:
+        y.leave_group(z)
+        y.TCP_close()
+
+if __name__ == '__main__':
+    main()
         

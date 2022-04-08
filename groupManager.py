@@ -35,8 +35,7 @@ def multicast_receiver():
     while not stop_threads:
         sock.settimeout(uniform(1, 3))
         try:
-            data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-            print("Received message:", data.decode())
+            data, addr = sock.recvfrom(8)  # buffer size is 1024 bytes
             sock.sendto(data, addr)
         except:
             continue
@@ -75,14 +74,16 @@ def handle_client(client_sock, client_address, group_list):
                     print("JOIN")
                     group_name = data.split(" ")[1]
                     id = data.split(" ")[2]
+                    port = int(data.split(" ")[3])
                     x = group_list.find_group(group_name)
-                    member = Process_Info(id, client_address[0], client_address[1])
+                    member = Process_Info(id, client_address[0], port)
                     if x == None:
                         x = Group(group_name)
                         x.add_member(member)
                         group_list.add_group(x)
                         client_sock.sendall(b'OK ')
                         my_group.append(group_name)
+                        len_update = len(update)
                         tmp = "VIEW" + x.toString()
                         print("SENDING:", tmp)
                         client_sock.sendall(tmp.encode())
@@ -91,7 +92,7 @@ def handle_client(client_sock, client_address, group_list):
                             client_sock.sendall(b'NOK')
                         else:
                             update.append(group_name)
-                            len_update += 1
+                            len_update = len(update)
                             my_group.append(group_name)
                             x.add_member(member)
                             client_sock.sendall(b'OK ')
@@ -102,8 +103,9 @@ def handle_client(client_sock, client_address, group_list):
                     print("LEAVE")
                     group_name = data.split(" ")[1]
                     id = data.split(" ")[2]
+                    port = int(data.split(" ")[3])
                     x = group_list.find_group(group_name)
-                    member = Process_Info(id, client_address[0], client_address[1])
+                    member = Process_Info(id, client_address[0], port)
                     if x == None:
                         client_sock.sendall(b'NOK')
                     else:
@@ -154,36 +156,11 @@ def find_ip_server():
     return x
 
 def main():
-    if (len(sys.argv) != 2):
-        print("Wrong Argument")
-        print("0: From Group Manager")
-        print("1: From Process")
-        return 0
-    x = int(sys.argv[1])
-    if x:
-        y = Process()
-        y.multicast_send('1')
-        y.TCP()
-        z = y.join_group('1', '5')
-        if z != -1:
-            try:
-                a = input("Press Enter to continue...")
-                if a == '1':
-                    y.Group_Send(z, 'Hello', 1)
-                elif a == '0':
-                    y.Group_Send(z, 'Hello', 0)
-                else: 
-                    y.Group_Receive(z, 1)
-            finally:
-                y.leave_group(z)
-                y.TCP_close()
 
+    global stop_threads
+    stop_threads = False
+    GroupManager()
 
-    else:
-        global stop_threads
-        stop_threads = False
-        GroupManager()
-    return 0
 
 if __name__ == '__main__':
     main()

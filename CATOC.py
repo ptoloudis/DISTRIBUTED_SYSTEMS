@@ -5,10 +5,8 @@ import sys
 import os
 import time
 from list import *
-#from Process import *
 
 Buffer = None
-
 send_msg = []
 receive_msg = []
 receive_msg_Fifo = []
@@ -27,18 +25,20 @@ class CATOC_RM:
     def set_pids(self, grp):
         self.pids = grp
 
-    def CATOC_RM_send(self, msg):
-        global send_msg, receive_msg
+    def CATOC_RM_send(self, message):
+        global send_msg, receive_msg, receive_vote
         self.seqno = self.seqno + 1
         maxvote = 0
         vote = 0
         vpid = 0
-        data = "TRM-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + msg
+        data = "TRM-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + message
         for pid in self.pids:
             tmp = msg(pid, data)
             send_msg.append(tmp)
         for pid in self.pids:
-            receive_vote.pop(pid)
+            while len(receive_vote) == 0:
+                continue
+            receive_vote.pop(0)
             if vote > maxvote or vote == maxvote and pid > vpid:
                 maxvote = vote
                 vpid = pid
@@ -78,47 +78,6 @@ class CATOC_RM:
                     self.delivered[x] = k
                     receive_msg.append(msg.split(" ")[2])
 
-
-
-class message:
-    def __init__(self, pid, myvote, vote, msg):
-        self.msg = msg
-        self.myvote = myvote
-        self.vote = vote
-        self.pid = pid
-    def get_pid(self):
-        return self.pid
-
-class msg:
-    def __init__(self, pid: Pids, msg):
-        self.pid = pid
-        self.msg = msg
-    def get_pid(self):
-        return self.pid
-
-
-def UDP_send(sock):
-    global send_msg, receive_msg, receive_vote
-    while True:
-        try:
-            if len(send_msg) > 0:
-                msg = send_msg.pop(0)
-                pid = msg.get_pid()
-                sock.sendto(msg.msg.encode(), (pid.get_host(), pid.get_port()))
-            else:
-                sock.settimeout(2)
-                try:
-                    tmp = sock.recvfrom(1024)
-                    if tmp[0].decode()[0:7] == "FIFO-MSG":
-                        receive_msg_Fifo.append(tmp[0].decode())
-                    else:
-                        receive.append(tmp[0].decode())
-                except socket.timeout:
-                    continue
-        except KeyboardInterrupt:
-            return 0
-
-
 class FIFO_RM:
     def __init__(self, grp):
         self.pids = grp
@@ -128,14 +87,14 @@ class FIFO_RM:
         self.mbuf = []
         self.delivered : int = [len(self.pids)]
 
-    def FIFO_RM_send(self, msg):
+    def FIFO_RM_send(self, message):
         self.seqno = self.seqno + 1
-        data = "FIFO-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + msg
+        data = "FIFO-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + message
         for pid in self.pids:
             tmp = msg(pid, data)
             send_msg.append(tmp)
 
-    def FIFO_RM_deliver(self, msg):
+    def FIFO_RM_deliver(self):
         global receive_msg_Fifo
         while True:
             if len(receive_msg_Fifo) > 0:
@@ -158,7 +117,6 @@ class FIFO_RM:
                     self.delivered[x] = k
                 receive_msg.append(msg.split(" ")[2])
 
-           
 def Send_to_App(block):
     global receive_msg
     if block == 1:
@@ -172,4 +130,44 @@ def Send_to_App(block):
             return (receive_msg.pop(0))
         else:
             return NONE
+
+class message:
+    def __init__(self, pid, myvote, vote, msg):
+        self.msg = msg
+        self.myvote = myvote
+        self.vote = vote
+        self.pid = pid
+    def get_pid(self):
+        return self.pid
+
+class msg:
+    def __init__(self, pid, data):
+        self.pid = pid
+        self.data = data
+    def get_pid(self):
+        return self.pid
+
+def UDP_send(sock):
+    global send_msg, receive_msg, receive_vote
+    print("Sending messages")
+    while True:
+        try:
+            if len(send_msg) > 0:
+                data = send_msg.pop(0)
+                pid = data.get_pid()
+                print("Sending to " + str(pid) + ": " + data.data)
+                sock.sendto(data.data.encode(), (pid.get_host(), pid.get_port()))
+            else:
+                sock.settimeout(1)
+                try:
+                    tmp = sock.recvfrom(1024)
+                    print("Received: " + tmp.decode())
+                    if tmp[0].decode()[0:7] == "FIFO-MSG":
+                        receive_msg_Fifo.append(tmp[0].decode())
+                    else:
+                        receive.append(tmp[0].decode())
+                except socket.timeout:
+                    continue
+        except KeyboardInterrupt:
+            return 0
         

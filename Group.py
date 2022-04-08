@@ -1,6 +1,6 @@
 class Group:
     def __init__(self, group_name):
-        self.group_name: String = group_name
+        self.group_name: str = group_name
         self.members: Process_Info = []
 
     def add_member(self, member):

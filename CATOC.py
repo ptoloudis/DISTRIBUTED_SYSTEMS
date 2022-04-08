@@ -1,12 +1,19 @@
+from pickle import NONE
 import threading
 import socket
 import sys  
 import os
+import time
+from list import *
+#from Process import *
 
-send_msq: msq = []
-resive_msq: msq = []
-resive_vote: msq = []
-resive: msq = []
+Buffer = None
+
+send_msg = []
+receive_msg = []
+receive_msg_Fifo = []
+receive_vote = []
+receive = []
 
 class CATOC_RM:
     def __init__(self, grp):
@@ -21,37 +28,37 @@ class CATOC_RM:
         self.pids = grp
 
     def CATOC_RM_send(self, msg):
-        global send_msq, resive_msq
+        global send_msg, receive_msg
         self.seqno = self.seqno + 1
         maxvote = 0
         vote = 0
         vpid = 0
         data = "TRM-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + msg
         for pid in self.pids:
-            tmp = msq(pid, data)
-            send_msq.append(tmp)
+            tmp = msg(pid, data)
+            send_msg.append(tmp)
         for pid in self.pids:
-            resive_vote.pop(pid)
+            receive_vote.pop(pid)
             if vote > maxvote or vote == maxvote and pid > vpid:
                 maxvote = vote
                 vpid = pid
         data = "TRM-SEQ " + str(self.mypid) + "." + str(self.seqno) + " " + str(maxvote) + "." + str(vpid)
         for pid in self.pids:
-            tmp = msq(pid, data)
-            send_msq.append(tmp)
+            tmp = msg(pid, data)
+            send_msg.append(tmp)
     
     def Causal_RM_deliver(self):
-        global resive
+        global receive
         while True:
-            if len(resive) > 0:
-                for msg in resive:
+            if len(receive) > 0:
+                for msg in receive:
                     if msg[0] == "CRM-MSG":
                         self.myvote = self.myvote + 1
                         x = message(msg.split(" ")[1], self.myvote, "?",msg.split(" ")[3])
                         self.mbuf.append(x)
                         data = "CRM-VOTE " + str(self.mypid) + "." + str(self.seqno) + " " + str(self.myvote)
-                        tmp = msq(x.get_pid(), data)
-                        send_msq.append(tmp)
+                        tmp = msg(x.get_pid(), data)
+                        send_msg.append(tmp)
                     if msg[0] == "CRM-VOTE":
                         vote = msg.split(" ")[2]
                         self.myvote = max(self.myvote, vote.split(".")[0])
@@ -69,10 +76,9 @@ class CATOC_RM:
                     self.mbuf.remove(msg)
                     self.mids =+ msg.split(" ")[1]
                     self.delivered[x] = k
-                    resive_msq.append(msg.split(" ")[2])
+                    receive_msg.append(msg.split(" ")[2])
 
-    def Recive(self):
-        return resive_msq.pop(0)
+
 
 class message:
     def __init__(self, pid, myvote, vote, msg):
@@ -83,7 +89,7 @@ class message:
     def get_pid(self):
         return self.pid
 
-class msq:
+class msg:
     def __init__(self, pid: Pids, msg):
         self.pid = pid
         self.msg = msg
@@ -92,19 +98,78 @@ class msq:
 
 
 def UDP_send(sock):
-    global send_msq, resive_msq, resive_vote
+    global send_msg, receive_msg, receive_vote
     while True:
         try:
-            if len(send_msq) > 0:
-                msg = send_msq.pop(0)
+            if len(send_msg) > 0:
+                msg = send_msg.pop(0)
                 pid = msg.get_pid()
                 sock.sendto(msg.msg.encode(), (pid.get_host(), pid.get_port()))
             else:
                 sock.settimeout(2)
                 try:
                     tmp = sock.recvfrom(1024)
-                    resive.append(tmp)
+                    if tmp[0].decode()[0:7] == "FIFO-MSG":
+                        receive_msg_Fifo.append(tmp[0].decode())
+                    else:
+                        receive.append(tmp[0].decode())
                 except socket.timeout:
                     continue
         except KeyboardInterrupt:
             return 0
+
+
+class FIFO_RM:
+    def __init__(self, grp):
+        self.pids = grp
+        self.seqno = 0
+        self.mids = []
+        self.mypid = os.getpid()
+        self.mbuf = []
+        self.delivered : int = [len(self.pids)]
+
+    def FIFO_RM_send(self, msg):
+        self.seqno = self.seqno + 1
+        data = "FIFO-MSG " + str(self.mypid) + "." + str(self.seqno) + " " + msg
+        for pid in self.pids:
+            tmp = msg(pid, data)
+            send_msg.append(tmp)
+
+    def FIFO_RM_deliver(self, msg):
+        global receive_msg_Fifo
+        while True:
+            if len(receive_msg_Fifo) > 0:
+                for msg in receive_msg_Fifo:                        
+                    if msg.split(".")[0] not in self.mypid:
+                        for pid in self.pids:
+                            tmp = msg(pid, msg)
+                            send_msg.append(tmp)
+            
+                    self.mbuf.append(msg[8:])
+                    self.checkBuffer()
+
+    def checkBuffer(self):
+        if len(self.mbuf) > 0:
+            for msg in self.mbuf:
+                x = msg.split(".")[0]
+                k = msg.split(".")[1]
+                if k == self.delivered[x] + 1:
+                    self.mbuf.remove(msg)
+                    self.delivered[x] = k
+                receive_msg.append(msg.split(" ")[2])
+
+           
+def Send_to_App(block):
+    global receive_msg
+    if block == 1:
+        while True:
+            if len(receive_msg) > 0:
+                return (receive_msg.pop(0))
+            else:
+                time.sleep(0.1)
+    else:
+        if len(receive_msg) > 0:
+            return (receive_msg.pop(0))
+        else:
+            return NONE
+        

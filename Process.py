@@ -11,6 +11,7 @@ import struct
 import sys
 from list import *
 from Group import *
+from CATOC import *
 
 MCAST_PORT = 5006
 MCAST_GRP = '224.1.1.1'
@@ -19,8 +20,8 @@ TTL = 5
 TCP_PORT = 5005
 TCP_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Stop_thread = False
-msq = None
-msq_r = None
+msg = None
+msg_r = None
 view = None
 list_of_processes = []
 
@@ -46,15 +47,15 @@ class Process:
                 continue
 
     def join_group(self, group_name, myid):
-        global msq, msq_r, view
+        global msg, msg_r, view
         print("I want to join the group")
-        while msq != None:
+        while msg != None:
             pass
-        msq = "JOIN" + " " + group_name + " " + myid
-        while msq_r == None:
+        msg = "JOIN" + " " + group_name + " " + myid
+        while msg_r == None:
             pass
-        tmp = msq_r
-        msq_r = None
+        tmp = msg_r
+        msg_r = None
         if tmp == "OK ":
             group_value = (11 * int(group_name)) + (5 * int(myid))
             while view == None:
@@ -64,23 +65,24 @@ class Process:
             view = None
             x = list_node(myid, group, group_value, x)
             list_of_processes.append(x)
+            thread = threading.Thread(target= UDP_send , args = (self.UDP_sock)) 
             return (group_value)
         else:
             return -1
 
     def leave_group(self, value):
-        global msq, msq_r, list_of_processes
+        global msg, msg_r, list_of_processes
         find = find_node(list_of_processes, value)
         name = find.get_group()
         id = find.get_id()
         print("I want to leave the group")
-        while msq != None:
+        while msg != None:
             pass
-        msq = "LEAVE" + " " + name + " " + id
-        while msq_r == None:
+        msg = "LEAVE" + " " + name + " " + id
+        while msg_r == None:
             pass
-        tmp = msq_r
-        msq_r = None
+        tmp = msg_r
+        msg_r = None
         if tmp == "OK":
             list_of_processes.remove(find)
             return True
@@ -104,13 +106,33 @@ class Process:
         self.thread.join(timeout=1)
         print("Thread closed")
 
+    def Group_Send(self, message, group_value, catoc):
+        if catoc == 0:
+            print("Sending Messages in Fifo order")
+            x :list_node = find_node(list_of_processes, group_value)
+            y = FIFO_RM(x.get_pids())
+            y.FIFO_RM_send(message)
+        elif catoc == 1:
+            print("Sending Messages in Catoc order")
+            x :list_node = find_node(list_of_processes, group_value)
+            y = CATOC_RM(x.get_pids())
+            y.CATOC_RM_send(message)
+        else:
+            print("Is not Sending Messages in Random order")
 
+    def Group_Receive(self, group_value, block):
+        if block == 0:
+            return Send_to_App(0)
+        elif block == 1:
+            return Send_to_App(1)
+        else:
+            print("Is not Receiving Messages in Random order")
 
 def TCP_process():
-    global msq, msq_r, TCP_socket, Stop_thread, view, list_of_processes
+    global msg, msg_r, TCP_socket, Stop_thread, view, list_of_processes
     try:
         while not Stop_thread:
-            if msq == None:
+            if msg == None:
                 try:
                     TCP_socket.settimeout(uniform(1, 3))
                     tmp = TCP_socket.recv(1024)
@@ -122,7 +144,7 @@ def TCP_process():
                         x = tmp.find("#")
 
                         y = add_group(tmp[6:x], tmp)
-                        z = add_pids(group)
+                        z = add_pids(y)
                         replace_group(list_of_processes, y, z)
 
                     elif "VIEW" in tmp:
@@ -130,14 +152,16 @@ def TCP_process():
                 except:
                     continue
             else:
-                TCP_socket.send(msq.encode())
-                msq = None
+                TCP_socket.send(msg.encode())
+                msg = None
                 data = TCP_socket.recv(3)
-                while msq_r != None:
+                while msg_r != None:
                     pass
-                msq_r = data.decode()
+                msg_r = data.decode()
 
     except KeyboardInterrupt:
         return
 
-#def UDP_Process():
+# class Communication_Process:
+#     def __init__(self):
+        

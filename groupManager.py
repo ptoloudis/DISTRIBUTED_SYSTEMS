@@ -167,7 +167,13 @@ def main():
         z = y.join_group('1', '5')
         if z != -1:
             try:
-                input("Press Enter to continue...")
+                a = input("Press Enter to continue...")
+                if a == '1':
+                    y.Group_Send(z, 'Hello', 1)
+                elif a == '0':
+                    y.Group_Send(z, 'Hello', 0)
+                else: 
+                    y.Group_Receive(z, 1)
             finally:
                 y.leave_group(z)
                 y.TCP_close()

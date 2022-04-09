@@ -115,6 +115,7 @@ class Process:
             print("Sending Messages in Fifo order")
             x: list_node = find_node(list_of_processes, group_value)
             y = FIFO_RM(x.get_pids())
+            message = x.get_group() + " " + message
             y.FIFO_RM_send(message)
         elif catoc == 1:
             print("Sending Messages in Catoc order")
@@ -125,10 +126,11 @@ class Process:
             print("Is not Sending Messages in Random order")
 
     def Group_Receive(self, group_value, block):
+        x: list_node = find_node(list_of_processes, group_value)
         if block == 0:
-            return Send_to_App(0)
+            return Send_to_App(0, x.get_group())
         elif block == 1:
-            return Send_to_App(1)
+            return Send_to_App(1, x.get_group())
         else:
             print("Is not Receiving Messages in Random order")
 
@@ -176,7 +178,7 @@ def main():
     try:
         if z != -1:
             while True:
-                a = int(input("Press Enter to continue..."))
+                a = int(input("Press Operator to continue..."))
                 if a == 1:
                     y.Group_Send(z, 'Hello', 1)
                 elif a == 0:

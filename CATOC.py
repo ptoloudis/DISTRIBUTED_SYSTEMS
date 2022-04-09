@@ -126,19 +126,29 @@ class FIFO_RM:
                     self.delivered[x] = k
                 receive_msg.append(msg.split(" ")[2])
 
-def Send_to_App(block):
+def Send_to_App(block, grp):
     global receive_msg
+    str = ""
+    flag = False
     if block == 1:
         while True:
             if len(receive_msg) > 0:
-                return (receive_msg.pop(0))
+                for msg in receive_msg:
+                    if grp in msg:
+                        str += msg.split(" ")[1]
+                        flag = True
             else:
+                if flag:
+                    return str
                 time.sleep(0.1)
     else:
         if len(receive_msg) > 0:
-            return (receive_msg.pop(0))
+            for msg in receive_msg:
+                if grp in msg:
+                    str += msg.split(" ")[1]
+            return str
         else:
-            return NONE
+            return None
 
 class message:
     def __init__(self, pid, myvote, vote, msg):

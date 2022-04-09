@@ -1,3 +1,9 @@
+#
+# Team : 1
+# Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+# AEM : 03121 & 02995
+#
+
 class Group:
     def __init__(self, group_name):
         self.group_name: str = group_name

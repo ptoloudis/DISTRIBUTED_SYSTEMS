@@ -6,6 +6,7 @@
 
 import socket
 from random import uniform
+from _thread import *
 import threading
 import struct
 import time
@@ -60,7 +61,7 @@ class Process:
         tmp = msg_r
         msg_r = None
         if tmp == "OK ":
-            group_value = (11 * int(group_name)) + (5 * int(myid))
+            group_value = (11 * hash(group_name)) + (5 * hash(myid))
             while view == None:
                 pass
             group = add_group(group_name, view)
@@ -68,7 +69,7 @@ class Process:
             view = None
             x = list_node(myid, group, group_value, x)
             list_of_processes.append(x)
-            threading.Thread(target=UDP_send, args=(self.UDP_sock))
+            start_new_thread(UDP_send, (self.UDP_sock,))
             return (group_value)
         else:
             return -1
@@ -170,7 +171,8 @@ def main():
     y = Process(port)
     y.multicast_send('1')
     y.TCP()
-    z = y.join_group('1', '5')
+    name, group = input("Enter the name and group of the process: ").split()
+    z = y.join_group(group, name)
     try:
         if z != -1:
             while True:

@@ -1,4 +1,9 @@
-from pickle import NONE
+#
+# Team : 1
+# Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+# AEM : 03121 & 02995
+#
+
 import threading
 import socket
 import sys  
@@ -13,6 +18,8 @@ receive_msg_Fifo = []
 receive_vote = []
 receive = []
 
+lock = threading.Lock()
+
 class CATOC_RM:
     def __init__(self, grp):
         self.pids = grp
@@ -26,7 +33,8 @@ class CATOC_RM:
         self.pids = grp
 
     def CATOC_RM_send(self, message):
-        global send_msg, receive_msg, receive_vote
+        global send_msg, receive_msg, receive_vote, lock
+        lock.acquire()# lock for make sure that only one thread can send message
         self.seqno = self.seqno + 1
         maxvote = 0
         vote = 0
@@ -46,7 +54,8 @@ class CATOC_RM:
         for pid in self.pids:
             tmp = msg(pid, data)
             send_msg.append(tmp)
-    
+        lock.release()
+
     def Causal_RM_deliver(self):
         global receive
         while True:
@@ -156,18 +165,21 @@ def UDP_send(sock):
                 data = send_msg.pop(0)
                 pid = data.get_pid()
                 print("Sending to " + str(pid) + ": " + data.data)
-                sock.sendto(data.data.encode(), (pid.get_host(), pid.get_port()))
+                host = pid.get_host()
+                port = int(pid.get_port())
+                sock.sendto(data.data.encode(), (host, port))
             else:
-                sock.settimeout(1)
+                sock.settimeout(5)
                 try:
-                    tmp = sock.recvfrom(1024)
-                    print("Received: " + tmp.decode())
-                    if tmp[0].decode()[0:7] == "FIFO-MSG":
-                        receive_msg_Fifo.append(tmp[0].decode())
-                    else:
-                        receive.append(tmp[0].decode())
+                    tmp, addr = sock.recvfrom(1024)
                 except socket.timeout:
                     continue
+                if tmp != None:
+                    print("Received: " + tmp.decode())
+                    if "FIFO-MSG" in tmp.decode():
+                        receive_msg_Fifo.append(tmp.decode())
+                    else:
+                        receive.append(tmp.decode())
         except KeyboardInterrupt:
             return 0
         

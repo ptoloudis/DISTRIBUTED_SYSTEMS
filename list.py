@@ -1,3 +1,9 @@
+#
+# Team : 1
+# Names : Apostolopoulou Ioanna & Toloudis Panagiotis
+# AEM : 03121 & 02995
+#
+
 from Group import Group, Process_Info
 
 class list_node:

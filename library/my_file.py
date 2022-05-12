@@ -89,8 +89,12 @@ class File:
             print("Permission denied")
             return None
         if self.seek + size > self.file_end:
-            pass
-            # TODO: REFRESH FILE
+            message = "r " + str(self.server_id) + " " + str(self.seek) + " " + str(self.size_block * self.size_cache/3)
+            resv = self.network.send_message(message, "r", size)
+            if resv is None:
+                return None
+            self.last_modified, data = resv.split("#$")
+            #TODO: REFRESH Cache
         self.seek += size
         return self.cache.get_data(size / self.size_block)
 
@@ -99,13 +103,14 @@ class File:
             print("Permission denied")
             return None
 
-        # Send data to server
-        # Update cache
-        self.last_modified = None
+        message = "w " + str(self.server_id) + " " + str(self.seek) + " " + data
+        rersv = self.network.send_message(message, "w", 0)
+        if rersv is None:
+            return None
+        if "-1" in rersv:
+            return None
+        self.last_modified = rersv
         self.timestamp = time_ns()
-        if self.seek + len(data) > self.file_end:
-            pass
-            # TODO: REFRESH FILE
         self.seek += len(data)
         return len(data)
 
@@ -124,15 +129,25 @@ class File:
         if len(self.flags) > 5 and self.flags[-1:] == OnlyReadMode:
             print("Permission denied")
             return None
-        # Send data to server
-        # Update cache
-        self.last_modified = None
+
+        message = "w " + str(self.server_id) + " " + str(size) + " $#trun#$"
+        rersv = self.network.send_message(message, "w", 0)
+        if rersv is None:
+            return None
+        if "-1" in rersv:
+            return None
+        self.last_modified = rersv
         self.timestamp = time_ns()
-        # update file_end
+        self.seek = size
         return 1
 
     def refresh_file(self):
         self.refresh_timestamp()
-        # Check the last modified time of the file
-        # If it is different from the one in the file, refresh the file
+        message = "n " + str(self.server_id) + " " + str(self.last_modified)
+        rersv = self.network.send_message(message, "n", 0)
+        if rersv is None:
+            return None
+        if "OK" in rersv:
+            return 1
+        #TODO: REFRESH FILE
         # If it is the same, do nothing

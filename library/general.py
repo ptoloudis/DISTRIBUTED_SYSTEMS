@@ -8,6 +8,13 @@ from my_file import *
 from Network import Network
 
 
+O_CREAT = 64
+O_EXCL = 128
+O_TRUNC = 512
+O_RDWR = 2
+O_RDONLY = 0
+O_WRONLY = 1
+
 class Files:
     def __init__(self, file, file_id):
         self.file: File = file
@@ -31,15 +38,15 @@ class General:
 
     def mynfs_open(self, path, flags):
 
-        # ToDo: check if file exists in server
-        # if is ok, add to cache
-        if 1:  # if file exists in server
-            size = None
-            last_mod = None
-            x: File = File(path, flags, self.network, self.cacheblocks, self.blocksize, size, last_mod, self.network)
+        message = "o " + path + " " + str(flags)
+        resv = self.network.send_message(message)
+        if "Not Create" not in resv:
+            id, last_mod, size = int(resv.split("#"))
+            x: File = File(path, flags, id, self.cacheblocks, self.blocksize, size, last_mod, self.network)
             x.open_file()
             self.counter += 1
             self.files.append(Files(x, self.counter))
+            return self.counter
         else:
             return 0
 

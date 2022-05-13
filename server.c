@@ -17,34 +17,19 @@ AEM : 03121 & 02995
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-//#include "header.h"
+#include "header.h"
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <signal.h>
 
-
-/********************** DEFINITIONS **********************/
-
-#define SERVER_IP "192.168.68.197" 
-#define SERVER_PORT 12000
-#define CLIENT_PORT 12001
-#define BUF_LEN 1024
-
-typedef struct client_info
-{
-    char buffer[BUF_LEN];
-    struct sockaddr *client_addr;
-    socklen_t client_addr_len;
-}Info_t;
-
-/********************** GLOBALS **********************/
-volatile int received = 0;
-volatile int sent = 0;
+int received = 0;
+int sent = 0;
 Info_t *receive_buf[BUF_LEN];
 Info_t *send_buf[BUF_LEN];
 
-
 void *receiver(void *arg)
 {
-    int sockfd = *(int *)arg;
+    int sockfd;
     int n;
     char buffer[1024];
     Info_t *info;
@@ -53,7 +38,8 @@ void *receiver(void *arg)
     from_len = sizeof(sockaddr_from);
     
     while((n = recvfrom(sockfd, buffer, BUF_LEN, 0, sockaddr_from, &from_len) > 0))
-    {// if buf=ack recv ack
+    {
+        printf("Received %d bytes\n", n);
         info = (Info_t *) malloc(sizeof(Info_t));
         if(info == NULL)
         {
@@ -73,9 +59,9 @@ void *receiver(void *arg)
 
 
 void *sender(void *arg){
-    int sockfd = *(int *)arg;
+    int sockfd;
     int n;
-    char buffer[1024];
+    //char buffer[1024];
     Info_t *info;
 
     while(1){
@@ -95,22 +81,35 @@ void *sender(void *arg){
     return NULL;
 }
 
-void *ping_pong(void *arg){
-    int sockfd = *(int *)arg;
+void *execute_command(void *arg){
     int received_data = 0;
     int sent_data = 0;
     char buffer[1024];
     Info_t *info;
-    int fd;
-    int flags[5] = {0};
-    int *ptr = flags;
+    //File_t *file;
+    FILE *my_fd;
+    int fd, seek, size;
+    int magic_number, reboot_number, my_reboot;
+    char *message;
+    char command;
+    char *tmp, *temp;
+    char *path;
+    int flag;
+    int offset, last_modified;
+    
+    mynfs_init();
 
-    flags[0] = O_CREAT;
-    flags[1] = O_WRONLY;
-    flags[2] = O_EXCL;
-    flags[3] = O_TRUNC;
-    flags[4] = O_RDONLY;
-    flags[5] = O_RDWR;
+    my_fd = fopen("reboot.txt", "r+");
+    if(my_fd == NULL)
+    {
+        perror("fopen");
+        exit(1);
+    }
+    my_reboot = 0;
+
+    fscanf(my_fd, "%d", &my_reboot);
+    fprintf(my_fd, "%d", my_reboot + 1);
+    fclose(my_fd);
 
     while(1){
         while(received_data >= received);
@@ -118,39 +117,53 @@ void *ping_pong(void *arg){
         received_data++;
         strcat(buffer, info->buffer);
 
-        int command;
+
+        sscanf(buffer,"%d %c %d", &magic_number, &command, &reboot_number);
+        if (reboot_number != my_reboot)
+        {
+            // ToDo: make the message
+            continue;
+        }
+        sprintf(tmp,"%d %c %d.", magic_number, command, reboot_number);
+        tmp = strtok(buffer,tmp);
+
         switch (command)
         {
-        case 1:
-            /* Write in Disk */
-            write(fd, buffer, strlen(buffer));
-            break;
-        case 2:
-            /* Read from Disk */
-            read(fd, buffer, strlen(buffer));
-            break;
-        case 3:
-            /* Truncate file in Disk */
-            truncate(&fd, strlen(buffer));
-            break;
-        case 4:
+        case 'o':
             /* Open - Find file in Disk */
-            
-            for(int i = 0; i < 5; i++)
+            sscanf(tmp, "%s %d", path, &flag);
+            tmp = nfs_open(path, flag);
+            sprintf(message, "%d#%d.%s", magic_number, reboot_number, tmp);
+            break;
+        case 'r':
+            /* Read from Disk */
+            sscanf(tmp, "%d %d %d", &fd, &seek, &size);
+            nfs_read(fd, buffer, strlen(buffer), offset);
+            break;
+        case 'w':
+            sscanf(tmp, "%d %d", &fd, &seek);
+            sprintf(temp, "%d %d ",fd, seek);
+            temp = strtok(tmp,temp);
+            if (!strcmp(temp,"$#trun#$"))
             {
-                open(buffer, flags[i]);
+               nfs_ftruncate(fd, strlen(buffer)); 
             }
+            else
+            {
+                nfs_write(fd, buffer, strlen(buffer), offset);
+            }
+            break;
+        case 'n':
+            /* Open - Find file in Disk */
+            sscanf(tmp, "%d %d", &fd, &last_modified);
             break;
         
         default:
             break;
         }
-        ///
-        /*
-        switch case 
-        o (open)*/
-        strcat(info->buffer, buffer);
-        send_buf[sent_data % BUF_LEN];
+        int x = sent_data % BUF_LEN;
+        strcat(info->buffer, message);
+        send_buf[x] = info;
     }
 }
 
@@ -158,6 +171,21 @@ void *ping_pong(void *arg){
 
 int main(int argc, char *argv[])
 {
+
+    //Configure Path for Files Server can Access
+    if(argv[1] != NULL)
+    {
+        chdir(argv[1]);
+    }
+    else
+    {
+        perror("Specifiy a path to the files you want to access\n");
+        exit(1);
+    }
+
+
+
+
     // Create the server's socket.
     // First parameter indicates that the netwrork uses IPv4.
     // Second parameter means we use a UDP Socket.
@@ -168,17 +196,14 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    struct sockaddr_in sockaddr_server = {0};
+    struct sockaddr_in sockaddr_server ;
     int err = -1;
 
     // Create the sockaddr that the server will use to send data to the client.
     struct sockaddr_in *sockaddr_to;
     //fill_sockaddr(&sockaddr_to, SERVER_IP, SERVER_PORT);
 
-    memset(&sockaddr_server, 0, sizeof(sockaddr_server));
-    sockaddr_server.sin_family = AF_INET;
-    sockaddr_server.sin_addr.s_addr = htonl(INADDR_ANY);
-    sockaddr_server.sin_port = htons(CLIENT_PORT);
+    
 
 
     // Set Socket Options
@@ -189,8 +214,13 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    //memset(&sockaddr_server, 0, sizeof(sockaddr_server));
+    sockaddr_server.sin_family = AF_INET;
+    sockaddr_server.sin_addr.s_addr = htonl(INADDR_ANY);
+    sockaddr_server.sin_port = htons(CLIENT_PORT);
+
     printf("Binding...\n");
-    err = bind(sockfd, (struct sockaddr *) &sockaddr_to, sizeof(sockaddr_to));
+    err = bind(sockfd, (struct sockaddr *) &sockaddr_server, sizeof(sockaddr_server));
     if (err < 0){
         perror("ERROR on binding");
         exit(1);
@@ -200,11 +230,13 @@ int main(int argc, char *argv[])
     // Create the threads.
     pthread_t recv_thread;
     pthread_t send_thread;
+    pthread_t execute_command_thread;
     
 
     //pthread_create(&pingpong_thread, NULL, ping_pong, NULL);
     pthread_create(&recv_thread, NULL, receiver, NULL);
     pthread_create(&send_thread, NULL, sender, NULL);
+    pthread_create(&execute_command_thread, NULL, execute_command, NULL);
 
     while (1) {
         sleep(1);
@@ -217,9 +249,17 @@ int main(int argc, char *argv[])
     // Clean up the threads.
     void **retval;
     
-    pthread_join(recv_thread, retval);
-    pthread_join(send_thread, retval);
-
+    pthread_kill(recv_thread, SIGKILL);
+    pthread_kill(send_thread, SIGKILL);
+    pthread_kill(execute_command_thread, SIGKILL);
 
     return 0;
 }
+
+
+
+// #TODO: Encoding and Decoding
+// #TODO: Debugging
+// #TODO: Error handling
+// #TODO: Test Files
+// #TODO: 

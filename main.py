@@ -4,14 +4,8 @@
 # AEM : 03121 & 02995
 #
 
-import os
-from datetime import datetime
+from library.general import *
 
-
-print(os.O_CREAT)
-print(os.O_EXCL)
-print(os.O_TRUNC)
-print(os.O_RDWR)
-print(os.O_RDONLY)
-print(os.O_WRONLY)
+x = General('192.168.68.190', 12000, 0, 0, 5)
+x.mynfs_open("distrsys_s22_Assignment3.pdf", O_RDONLY)
 

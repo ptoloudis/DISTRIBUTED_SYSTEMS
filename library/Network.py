@@ -13,7 +13,7 @@ magic_char = ' '  # magic char to identify the start of the message
 
 class Network:
     def __init__(self, ip, port):
-        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.Address = (ip, port)
         self.count = 0
 

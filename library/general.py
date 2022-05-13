@@ -4,8 +4,12 @@
 # AEM : 03121 & 02995
 #
 
-from my_file import *
-from Network import Network
+from library.my_file import *
+from library.Network import Network
+from sys import stderr
+
+def perror(*args, **kwargs):
+    print(*args, file=stderr, **kwargs)
 
 
 O_CREAT = 64
@@ -39,9 +43,10 @@ class General:
     def mynfs_open(self, path, flags):
 
         message = "o " + path + " " + str(flags)
-        resv = self.network.send_message(message)
-        if "Not Create" not in resv:
-            id, last_mod, size = int(resv.split("#"))
+        resv = self.network.send_message(message,"o", 0)
+        if "File Not Created" not in resv:
+            id , tmp = resv.split("#")
+            last_mod, size = int(tmp.split("#"))
             x: File = File(path, flags, id, self.cacheblocks, self.blocksize, size, last_mod, self.network)
             x.open_file()
             self.counter += 1
@@ -55,14 +60,23 @@ class General:
         if z is not None:
             if time_ns() - z.get_time > self.freshTime:
                 z.refresh_file()
-            return z.read_file(size)
+            x = z.read_file(size)
+            if x == -1:
+                self.mynfs_close(fd)
+                perror("Server make a Reboot")
+            return x
         else:
             return None
 
     def mynfs_write(self, fd, buffer):
         z = BinarySearch(self.files, 0, len(self.files), fd)
         if z is not None:
-            return z.write_file(buffer)
+            x = z.write_file(buffer)
+            if x  == -1:
+                self.mynfs_close(fd)
+                perror("Server make a Reboot")
+            return x
+
         else:
             return None
 
@@ -71,7 +85,12 @@ class General:
         if z is not None:
             if time_ns() - z.get_time > self.freshTime:
                 z.refresh_file()
-            return z.seek_file(offset, whence)
+            x = z.seek_file(offset, whence)
+            if x  == -1:
+                self.mynfs_close(fd)
+                perror("Server make a Reboot")
+            return x
+
         else:
             return None
 
@@ -79,7 +98,12 @@ class General:
     def mynfs_truncate(self, fd, size):
         z = BinarySearch(self.files, 0, len(self.files), fd)
         if z is not None:
-            return z.truncate_file(size)
+            x = z.truncate_file(size)
+            if x  == -1:
+                self.mynfs_close(fd)
+                perror("Server make a Reboot")
+            return x
+
         else:
             return None
 

@@ -62,8 +62,15 @@ class File:
         self.timestamp = time_ns()
         self.size_block = size_block
         self.size_disk = size_disk
+        self.my_modification = 0
         self.last_modified = last_modified
-        self.cache = RingBuffer(size_cache)
+        if self.flags[-1:] != OnlyWriteMode:
+            self.cache = RingBuffer(size_cache)
+            self.load = False
+        else:
+            self.load = True
+            self.cache = None
+
         self.file_start = 0
         self.seek = 0
         self.file_end = size_block * size_cache
@@ -88,66 +95,123 @@ class File:
         if self.flags[-1:] == OnlyWriteMode:
             print("Permission denied")
             return None
-        if self.seek + size > self.file_end:
-            message = "r " + str(self.server_id) + " " + str(self.seek) + " " + str(self.size_block * self.size_cache/3)
+
+        if not self.load or (self.my_modification != 0 and self.my_modification > self.seek):
+            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size_cache)
             resv = self.network.send_message(message, "r", size)
             if resv is None:
                 return None
+            if resv is "Reboot":
+                return -1
             self.last_modified, data = resv.split("#$")
-            #TODO: REFRESH Cache
+            for i in range(0, self.size_cache):
+                self.cache.get_data()
+                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
+            self.my_modification = 0  # reset modification counter
+
+        if self.seek + size > self.file_end:
+            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * int(self.size_cache/3 + 1))
+            resv = self.network.send_message(message, "r", size)
+            if resv is None:
+                return None
+            if resv is "Reboot":
+                return -1
+            self.last_modified, data = resv.split("#$")
+            for i in range(0, 3):
+                self.cache.get_data()
+                self.cache.append(data[i*self.size_block:(i+1)*self.size_block])
         self.seek += size
-        return self.cache.get_data(size / self.size_block)
+        return self.cache.get_data(int(size / self.size_block))
 
     def write_file(self, data):  # 0 to not write, len(data) to write
         if self.flags[-1:] == OnlyReadMode:
             print("Permission denied")
             return None
 
-        message = "w " + str(self.server_id) + " " + str(self.seek) + " " + data
-        rersv = self.network.send_message(message, "w", 0)
-        if rersv is None:
+        message = "w " + self.server_id + " " + str(self.seek) + " " + data
+        resv = self.network.send_message(message, "w", 0)
+        if resv is None:
             return None
-        if "-1" in rersv:
+        if resv is "Reboot":
+            return -1
+        if "-1" in resv:
             return None
-        self.last_modified = rersv
+        self.last_modified = resv
+        self.my_modification = self.seek  # set modification counter to current seek
         self.timestamp = time_ns()
         self.seek += len(data)
         return len(data)
 
     def seek_file(self, offset, whence):
         if whence == 0:
+            self.seek += offset
+        elif whence == 1 and self.seek - (self.size_block * self.size_cache) is not 0:
+            message = "r " + self.server_id + " 0 " + str(self.size_block * self.size_cache)
+            resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
+            if resv is None:
+                return None
+            if resv is "Reboot":
+                return -1
+
+            self.last_modified, data = resv.split("#$")
+            for i in range(0, self.size_cache):
+                self.cache.get_data()
+                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
             self.seek = offset
         elif whence == 1:
-            # TODO: REFRESH FILE
-            self.seek += offset
+            self.seek = offset
+        elif whence == 2 and self.seek + offset < self.file_end:
+            message = "r " + self.server_id + " " + str(self.file_end - offset) + " " + str(self.size_block * self.size_cache)
+            resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
+            if resv is None:
+                return None
+            if resv is "Reboot":
+                return -1
+            self.last_modified, data = resv.split("#$")
+            for i in range(0, self.size_cache):
+                self.cache.get_data()
+                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
+            self.seek = self.file_end - offset
         elif whence == 2:
-            # TODO: REFRESH FILE
-            self.seek = self.file_end + offset
+            self.seek = self.file_end - offset
         return self.seek
 
     def truncate_file(self, size):
-        if len(self.flags) > 5 and self.flags[-1:] == OnlyReadMode:
+        if len(self.flags) < 5 and self.flags[-1:] == OnlyReadMode:
             print("Permission denied")
             return None
 
-        message = "w " + str(self.server_id) + " " + str(size) + " $#trun#$"
-        rersv = self.network.send_message(message, "w", 0)
-        if rersv is None:
+        message = "w " + self.server_id + " " + str(size) + " $#trun#$"
+        resv = self.network.send_message(message, "w", 0)
+        if resv is None:
             return None
-        if "-1" in rersv:
+        if resv is "Reboot":
+            return -1
+        if "-1" in resv:
             return None
-        self.last_modified = rersv
+        self.last_modified = resv
+        self.my_modification = size  # set modification counter to current seek
         self.timestamp = time_ns()
         self.seek = size
         return 1
 
     def refresh_file(self):
         self.refresh_timestamp()
-        message = "n " + str(self.server_id) + " " + str(self.last_modified)
-        rersv = self.network.send_message(message, "n", 0)
-        if rersv is None:
+        message = "n " + self.server_id + " " + str(self.last_modified)
+        resv = self.network.send_message(message, "n", 0)
+        if resv is None:
             return None
-        if "OK" in rersv:
+        if resv is "Reboot":
+            return -1
+        if "OK" in resv:
             return 1
-        #TODO: REFRESH FILE
-        # If it is the same, do nothing
+        else:
+            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size_cache)
+            resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
+            if resv is None:
+                return None
+            self.last_modified, data = resv.split("#$")
+            for i in range(0, self.size_cache):
+                self.cache.get_data()
+                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
+            return 0

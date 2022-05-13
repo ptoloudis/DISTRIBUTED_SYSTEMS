@@ -76,9 +76,6 @@ class File:
         self.file_end = size_block * size_cache
         self.network = network
 
-    def get_open(self):
-        return self.open
-
     def get_name(self):
         return self.name
 

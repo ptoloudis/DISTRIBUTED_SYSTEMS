@@ -21,6 +21,8 @@ AEM : 03121 & 02995
 #include "header.h"
 #include <fcntl.h>
 
+File_t *file_buf;
+
 int mynfs_init()
 {
     file_buf = (File_t *) calloc(BUF_LEN, sizeof(File_t));
@@ -55,7 +57,7 @@ int mynfs_open(char *filename, int flags)
             file->flags = flags;
             file->id = i;
             file->fd = fd;
-            file->timestamp = time(NULL);
+            file->timestamp = 0;
             fstat(fd, &stat_buf);
             file->size = stat_buf.st_size;
             return file->id;
@@ -113,7 +115,7 @@ char *nfs_open(char *filename, int flags)
     {
         return "File Not Created";
     }
-    sprintf(message, "%d#%d#%f.", fd, file_buf[fd].timestamp, file_buf[fd].size);
+    sprintf(message, "%d#%d#%d", fd, file_buf[fd].timestamp, (int)file_buf[fd].size);
     
     return message;
 }

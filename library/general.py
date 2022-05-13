@@ -43,14 +43,14 @@ class General:
     def mynfs_open(self, path, flags):
 
         message = "o " + path + " " + str(flags)
-        resv = self.network.send_message(message,"o", 0)
+        resv = self.network.send_message(message, "o", 0)
         if "File Not Created" not in resv:
-            id , tmp = resv.split("#")
-            last_mod, size = int(tmp.split("#"))
-            x: File = File(path, flags, id, self.cacheblocks, self.blocksize, size, last_mod, self.network)
-            x.open_file()
+            id, last_mod, size = resv.split("#")
+
+            x: File = File(path, flags, id, self.cacheblocks, self.blocksize, int(size), int(last_mod), self.network)
             self.counter += 1
             self.files.append(Files(x, self.counter))
+            print("hahahahaha")
             return self.counter
         else:
             return 0

@@ -32,7 +32,7 @@ AEM : 03121 & 02995
 typedef struct client_info
 {
     char buffer[BUF_LEN];
-    struct sockaddr *client_addr;
+    struct sockaddr_in client_addr;
     socklen_t client_addr_len;
 }Info_t;
 
@@ -47,7 +47,7 @@ typedef struct open_info
 }File_t;
 
 /********************** GLOBALS **********************/
-File_t *file_buf;
+
 
 
 /********************** FUNCTIONS **********************/

@@ -37,6 +37,7 @@ class Network:
                 if data:
                     if data[:len(str(count))] == str(count):
                         mutex.release()
-                        return data[len(str(count)) + 2:]
+                        print("Received message: " + data[len(str(count)) + 3:])
+                        return data[len(str(count)) + 3:]
             except:
                 pass

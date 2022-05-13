@@ -25,6 +25,7 @@ class Network:
         message = str(count) + magic_char + message
 
         while True:
+            print("Sending message: " + message)
             self.client.sendto(message.encode(), self.Address)
             self.client.settimeout(20)  # 20 second
             try:

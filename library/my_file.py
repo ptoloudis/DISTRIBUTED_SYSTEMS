@@ -99,9 +99,9 @@ class File:
         if not self.load or (self.my_modification != 0 and self.my_modification > self.seek):
             message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size_cache)
             resv = self.network.send_message(message, "r", size)
-            if resv is None:
+            if resv == None:
                 return None
-            if resv is "Reboot":
+            if resv == "Reboot":
                 return -1
             self.last_modified, data = resv.split("#$")
             for i in range(0, self.size_cache):
@@ -112,9 +112,9 @@ class File:
         if self.seek + size > self.file_end:
             message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * int(self.size_cache/3 + 1))
             resv = self.network.send_message(message, "r", size)
-            if resv is None:
+            if resv == None:
                 return None
-            if resv is "Reboot":
+            if resv == "Reboot":
                 return -1
             self.last_modified, data = resv.split("#$")
             for i in range(0, 3):
@@ -130,9 +130,9 @@ class File:
 
         message = "w " + self.server_id + " " + str(self.seek) + " " + data
         resv = self.network.send_message(message, "w", 0)
-        if resv is None:
+        if resv == None:
             return None
-        if resv is "Reboot":
+        if resv == "Reboot":
             return -1
         if "-1" in resv:
             return None
@@ -145,12 +145,12 @@ class File:
     def seek_file(self, offset, whence):
         if whence == 0:
             self.seek += offset
-        elif whence == 1 and self.seek - (self.size_block * self.size_cache) is not 0:
+        elif whence == 1 and self.seek - (self.size_block * self.size_cache) != 0:
             message = "r " + self.server_id + " 0 " + str(self.size_block * self.size_cache)
             resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
-            if resv is None:
+            if resv == None:
                 return None
-            if resv is "Reboot":
+            if resv == "Reboot":
                 return -1
 
             self.last_modified, data = resv.split("#$")
@@ -163,9 +163,9 @@ class File:
         elif whence == 2 and self.seek + offset < self.file_end:
             message = "r " + self.server_id + " " + str(self.file_end - offset) + " " + str(self.size_block * self.size_cache)
             resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
-            if resv is None:
+            if resv == None:
                 return None
-            if resv is "Reboot":
+            if resv == "Reboot":
                 return -1
             self.last_modified, data = resv.split("#$")
             for i in range(0, self.size_cache):
@@ -183,9 +183,9 @@ class File:
 
         message = "w " + self.server_id + " " + str(size) + " $#trun#$"
         resv = self.network.send_message(message, "w", 0)
-        if resv is None:
+        if resv == None:
             return None
-        if resv is "Reboot":
+        if resv == "Reboot":
             return -1
         if "-1" in resv:
             return None
@@ -199,16 +199,16 @@ class File:
         self.refresh_timestamp()
         message = "n " + self.server_id + " " + str(self.last_modified)
         resv = self.network.send_message(message, "n", 0)
-        if resv is None:
+        if resv == None:
             return None
-        if resv is "Reboot":
+        if resv == "Reboot":
             return -1
         if "OK" in resv:
             return 1
         else:
             message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size_cache)
             resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
-            if resv is None:
+            if resv == None:
                 return None
             self.last_modified, data = resv.split("#$")
             for i in range(0, self.size_cache):

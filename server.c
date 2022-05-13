@@ -22,6 +22,7 @@ AEM : 03121 & 02995
 #include <sys/stat.h>
 #include <signal.h>
 
+struct sockaddr_in sockaddr_server;
 int received = 0;
 int sent = 0;
 Info_t *receive_buf[BUF_LEN];
@@ -29,15 +30,17 @@ Info_t *send_buf[BUF_LEN];
 
 void *receiver(void *arg)
 {
-    int sockfd;
+    int sockfd = *(int *)arg;
     int n;
     char buffer[1024];
     Info_t *info;
-    struct sockaddr *sockaddr_from;
+    //struct sockaddr *sockaddr_from = (struct sockaddr *) malloc(sizeof(struct sockaddr));
     socklen_t from_len;
-    from_len = sizeof(sockaddr_from);
+    from_len = sizeof(sockaddr_server);
+
+    n = recvfrom(sockfd, (void *)buffer, BUF_LEN, MSG_WAITALL, (struct sockaddr*)&sockaddr_server,  &from_len);
     
-    while((n = recvfrom(sockfd, buffer, BUF_LEN, 0, sockaddr_from, &from_len) > 0))
+    while(n > 0)
     {
         printf("Received %d bytes\n", n);
         info = (Info_t *) malloc(sizeof(Info_t));
@@ -47,8 +50,8 @@ void *receiver(void *arg)
             exit(1);
         }
         strcpy(info->buffer, buffer);
-        info->client_addr = sockaddr_from;
-        info->client_addr_len = from_len;
+        // info->client_addr = sockaddr_from;
+        // info->client_addr_len = from_len;
         receive_buf[received % BUF_LEN] = info;
         received++;
         /// ACK? send ACK
@@ -59,7 +62,7 @@ void *receiver(void *arg)
 
 
 void *sender(void *arg){
-    int sockfd;
+    int sockfd = *(int *)arg;
     int n;
     //char buffer[1024];
     Info_t *info;
@@ -196,7 +199,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    struct sockaddr_in sockaddr_server ;
     int err = -1;
 
     // Create the sockaddr that the server will use to send data to the client.
@@ -234,8 +236,8 @@ int main(int argc, char *argv[])
     
 
     //pthread_create(&pingpong_thread, NULL, ping_pong, NULL);
-    pthread_create(&recv_thread, NULL, receiver, NULL);
-    pthread_create(&send_thread, NULL, sender, NULL);
+    pthread_create(&recv_thread, NULL, receiver,(void *)&sockfd);
+    pthread_create(&send_thread, NULL, sender,(void *)&sockfd);
     pthread_create(&execute_command_thread, NULL, execute_command, NULL);
 
     while (1) {

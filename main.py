@@ -6,6 +6,6 @@
 
 from library.general import *
 
-x = General('192.168.68.190', 12000, 0, 0, 5)
+x = General('192.168.68.190', 12001, 0, 0, 5)
 x.mynfs_open("distrsys_s22_Assignment3.pdf", O_RDONLY)
 

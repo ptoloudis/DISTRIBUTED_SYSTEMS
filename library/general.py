@@ -4,9 +4,11 @@
 # AEM : 03121 & 02995
 #
 
-from library.my_file import *
+from time import time
+from library.my_file import File
 from library.Network import Network
 from sys import stderr
+from time import time
 
 def perror(*args, **kwargs):
     print(*args, file=stderr, **kwargs)
@@ -43,6 +45,7 @@ class General:
     def mynfs_open(self, path, flags):
 
         message = "o " + str(0) + "#" + path + " " + str(flags)
+        a = time()
         resv = self.network.send_message(message, "o", 0)
         if "File Not Created" not in resv:
             id, last_mod, size = resv.split("#")
@@ -51,14 +54,17 @@ class General:
             x: File = File(path, flags, id, self.cacheblocks, self.blocksize, int(size), int(last_mod), self.network)
             self.counter += 1
             self.files.append(Files(x, self.counter))
+            print(time()-a)
             return self.counter
         else:
+            print(time()-a)
             return 0
 
     def mynfs_read(self, fd, size):
-        z = BinarySearch(self.files, 0, len(self.files), fd)
+        z:File = BinarySearch(self.files, 0, len(self.files), fd)
         if z is not None:
-            if time_ns() - z.get_time > self.freshTime:
+            h = z.get_timestamp()
+            if time() - h > self.freshTime:
                 z.refresh_file()
             x = z.read_file(size)
             if x == -1:
@@ -81,9 +87,10 @@ class General:
             return None
 
     def mynfs_seek(self, fd, offset, whence):
-        z = BinarySearch(self.files, 0, len(self.files), fd)
+        z: File = BinarySearch(self.files, 0, len(self.files), fd)
         if z is not None:
-            if time_ns() - z.get_time > self.freshTime:
+            h = z.get_timestamp()
+            if time() - h > self.freshTime:
                 z.refresh_file()
             x = z.seek_file(offset, whence)
             if x  == -1:
@@ -120,9 +127,9 @@ def BinarySearch( list:Files, start, end, item):
     if start > end:
         return None
     mid = (start + end) // 2
-    if list[mid].get_file_id == item:
-        return list[mid]
-    elif list[mid].get_file_id > item:
+    if list[mid].get_file_id() == item:
+        return list[mid].file
+    elif list[mid].get_file_id() > item:
         return BinarySearch(list, start, mid - 1, item)
     else:
         return BinarySearch(list, mid + 1, end, item)

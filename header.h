@@ -38,13 +38,19 @@ typedef struct client_info
 
 typedef struct open_info
 {
-    char *filename;
+    char filename[254];
     int flags;
     int id;
     int fd;
     double size;
     int timestamp;  
 }File_t;
+
+typedef struct id_info
+{
+    int id;
+    int open_id;
+}Id_t;
 
 /********************** GLOBALS **********************/
 
@@ -68,3 +74,4 @@ char *nfs_write(int fd, void *buf, size_t n, int offset);
 char *nfs_seek(int fd, off_t pos, int whence);
 char *nfs_ftruncate(int fd, off_t len);
 char *nfs_close(int fd);
+char *nfs_mod(int fd, int last);

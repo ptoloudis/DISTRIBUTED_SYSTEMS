@@ -4,13 +4,13 @@
 # AEM : 03121 & 02995
 #
 
-from time import time_ns
+from time import time
+
 #time() second
 #time_ns() nanosecond
 
 OnlyReadMode = '0'
 OnlyWriteMode = '1'
-TruncateMode = 512
 
 
 class RingBuffer:
@@ -59,7 +59,7 @@ class File:
         self.flags = oct(flags)  # octal
         self.size = size_cache
         self.server_id = server_id
-        self.timestamp = time_ns()
+        self.timestamp = time()
         self.size_block = size_block
         self.size_disk = size_disk
         self.my_modification = 0
@@ -86,7 +86,7 @@ class File:
         return self.timestamp
 
     def refresh_timestamp(self):
-        self.timestamp = time_ns()
+        self.timestamp = time()
 
     def read_file(self, size):
         if self.flags[-1:] == OnlyWriteMode:
@@ -100,7 +100,7 @@ class File:
                 return None
             if resv == "Reboot":
                 return -1
-            self.last_modified, data = resv.split("#$")
+            self.last_modified, data = resv.split("#")
             for i in range(0, self.size_cache):
                 self.cache.get_data()
                 self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
@@ -113,7 +113,7 @@ class File:
                 return None
             if resv == "Reboot":
                 return -1
-            self.last_modified, data = resv.split("#$")
+            self.last_modified, data = resv.split("#")
             for i in range(0, 3):
                 self.cache.get_data()
                 self.cache.append(data[i*self.size_block:(i+1)*self.size_block])
@@ -135,7 +135,7 @@ class File:
             return None
         self.last_modified = resv
         self.my_modification = self.seek  # set modification counter to current seek
-        self.timestamp = time_ns()
+        self.timestamp = time()
         self.seek += len(data)
         return len(data)
 
@@ -143,32 +143,14 @@ class File:
         if whence == 0:
             self.seek += offset
         elif whence == 1 and self.seek - (self.size_block * self.size_cache) != 0:
-            message = "r " + self.server_id + " 0 " + str(self.size_block * self.size_cache)
-            resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
-            if resv == None:
-                return None
-            if resv == "Reboot":
-                return -1
-
-            self.last_modified, data = resv.split("#$")
-            for i in range(0, self.size_cache):
-                self.cache.get_data()
-                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
             self.seek = offset
+            self.read_file(self.size_block * self.size_cache)
         elif whence == 1:
             self.seek = offset
         elif whence == 2 and self.seek + offset < self.file_end:
-            message = "r " + self.server_id + " " + str(self.file_end - offset) + " " + str(self.size_block * self.size_cache)
-            resv = self.network.send_message(message, "r", self.size_block * self.size_cache)
-            if resv == None:
-                return None
-            if resv == "Reboot":
-                return -1
-            self.last_modified, data = resv.split("#$")
-            for i in range(0, self.size_cache):
-                self.cache.get_data()
-                self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
             self.seek = self.file_end - offset
+            message = "r " + self.server_id + " " + str(self.file_end - offset) + " " + str(self.size_block * self.size_cache)
+            self.read_file(self.size_block * self.size_cache)
         elif whence == 2:
             self.seek = self.file_end - offset
         return self.seek
@@ -188,7 +170,7 @@ class File:
             return None
         self.last_modified = resv
         self.my_modification = size  # set modification counter to current seek
-        self.timestamp = time_ns()
+        self.timestamp = time()
         self.seek = size
         return 1
 

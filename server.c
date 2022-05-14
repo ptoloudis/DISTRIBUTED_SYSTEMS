@@ -22,7 +22,6 @@ AEM : 03121 & 02995
 #include <sys/stat.h>
 #include <signal.h>
 
-/********************** GLOBALS **********************/ 
 struct sockaddr_in sockaddr_server;
 int received = 0;
 int sent = 0;
@@ -91,7 +90,8 @@ void *execute_command(void *arg){
     int magic_number, reboot_number, my_reboot;
     char message[1024];
     char command;
-    char *tmp, temp[1024];
+    char *token;
+    char tmp[1024], temp[1024];
     char path[1024];
     int flag;
     int offset, last_modified;
@@ -115,58 +115,72 @@ void *execute_command(void *arg){
         while(received_data >= received);
         info = &receive_buf[received_data % BUF_LEN];
         received_data++;
-        strcat(buffer, info->buffer);
+        memset(buffer,'\0', sizeof(buffer));
+        strcpy(buffer, info->buffer);
 
 
-        sscanf(buffer,"%d %c %d", &magic_number, &command, &reboot_number);
-        sprintf(temp,"%d %c %d.", magic_number, command, reboot_number);
-        tmp = strtok(buffer,temp);
+        sscanf(buffer,"%d %c %d#", &magic_number, &command, &reboot_number);
+        sprintf(temp,"%d %c %d#", magic_number, command, reboot_number);
+        
+        token = strtok(buffer, temp);
+        memset(tmp, '\0', sizeof(tmp));
+        while (token != NULL)
+        {
+            strcat (tmp, token);
+            strcat (tmp, " ");
+            token = strtok(NULL, " ");
+        }
+        
 
         switch (command)
         {
         case 'o':
             /* Open - Find file in Disk */
-            sscanf(tmp, "%s %d", path, &flag);
-            tmp = nfs_open(path, flag);
-            sprintf(message, "%d#%d.%s", magic_number, reboot_number, tmp);
+            memset(path,'\0', sizeof(path));
+            sscanf(tmp, "%s %d", path , &flag);
+            printf("Open %s\n", path);
+            token = nfs_open(path, flag);
+            sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
         case 'r':
             if (reboot_number != my_reboot)
             {
-                // ToDo: make the message
-                continue;
+                sprintf(message, "%s", "Reboot");   
+                break;
             }
             /* Read from Disk */
             sscanf(tmp, "%d %d %d", &fd, &seek, &size);
-            nfs_read(fd, buffer, strlen(buffer), offset);
+            token = nfs_read(fd, buffer, strlen(buffer), offset);
+            sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
         case 'w':
             if (reboot_number != my_reboot)
             {
-                // ToDo: make the message
-                continue;
+                sprintf(message, "%s", "Reboot");   
+                break;
             }
             sscanf(tmp, "%d %d", &fd, &seek);
             sprintf(temp, "%d %d ",fd, seek);
-            tmp = strtok(tmp,temp);
+            token = strtok(tmp,temp);
             if (!strcmp(tmp,"$#trun#$"))
             {
-               nfs_ftruncate(fd, strlen(buffer)); 
+               token = nfs_ftruncate(fd, strlen(buffer)); 
             }
             else
             {
-                nfs_write(fd, buffer, strlen(buffer), offset);
+                token = nfs_write(fd, buffer, strlen(buffer), offset);
             }
+            sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
 
         case 'n':
             if (reboot_number != my_reboot)
             {
-                // ToDo: make the message
-                continue;
+                sprintf(message, "%s", "Reboot");   
+                break;
             }   
-            /* Open - Find file in Disk */
-            sscanf(tmp, "%d %d", &fd, &last_modified);
+            token = nfs_mod(fd, last_modified);
+            sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
         
         default:

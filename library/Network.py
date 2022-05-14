@@ -25,7 +25,6 @@ class Network:
         message = str(count) + magic_char + message
 
         while True:
-            print(message.encode())
             self.client.sendto(message.encode(), self.Address)
             # self.client.settimeout(20)  # 20 second
             try:
@@ -37,7 +36,6 @@ class Network:
                 if data:
                     if data[:len(str(count))] == str(count):
                         mutex.release()
-                        print("Received message: " + data[len(str(count)) + 3:])
-                        return data[len(str(count)) + 3:]
+                        return data[len(str(count)) + 1:]
             except:
                 pass

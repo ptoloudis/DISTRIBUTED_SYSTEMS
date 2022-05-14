@@ -140,7 +140,7 @@ void *execute_command(void *arg){
             sscanf(tmp, "%s %d", path , &flag);
             printf("Open %s\n", path);
             token = nfs_open(path, flag);
-            sprintf(message, "%d#%d.%s", magic_number, reboot_number, token);
+            sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
         case 'r':
             if (reboot_number != my_reboot)

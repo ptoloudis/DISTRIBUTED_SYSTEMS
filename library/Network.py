@@ -25,9 +25,9 @@ class Network:
         message = str(count) + magic_char + message
 
         while True:
-            print("Sending message: " + message)
+            print(message.encode())
             self.client.sendto(message.encode(), self.Address)
-            self.client.settimeout(20)  # 20 second
+            # self.client.settimeout(20)  # 20 second
             try:
                 if op == 'r':
                     data = self.client.recv(size).decode()

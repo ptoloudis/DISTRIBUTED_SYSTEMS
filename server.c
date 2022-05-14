@@ -90,7 +90,8 @@ void *execute_command(void *arg){
     int magic_number, reboot_number, my_reboot;
     char message[1024];
     char command;
-    char *tmp, temp[1024];
+    char *token;
+    char tmp[1024], temp[1024];
     char path[1024];
     int flag;
     int offset, last_modified;
@@ -114,20 +115,32 @@ void *execute_command(void *arg){
         while(received_data >= received);
         info = &receive_buf[received_data % BUF_LEN];
         received_data++;
-        strcat(buffer, info->buffer);
+        memset(buffer,'\0', sizeof(buffer));
+        strcpy(buffer, info->buffer);
 
 
-        sscanf(buffer,"%d %c %d", &magic_number, &command, &reboot_number);
-        sprintf(temp,"%d %c %d.", magic_number, command, reboot_number);
-        tmp = strtok(buffer,temp);
+        sscanf(buffer,"%d %c %d#", &magic_number, &command, &reboot_number);
+        sprintf(temp,"%d %c %d#", magic_number, command, reboot_number);
+        
+        token = strtok(buffer, temp);
+        while (token != NULL)
+        {
+            strcat (tmp, token);
+            strcat (tmp, " ");
+            token = strtok(NULL, " ");
+        }
+        
+        printf("%s\n", tmp);
+
 
         switch (command)
         {
         case 'o':
             /* Open - Find file in Disk */
-            sscanf(tmp, "%s %d", path, &flag);
-            tmp = nfs_open(path, flag);
-            sprintf(message, "%d#%d.%s", magic_number, reboot_number, tmp);
+            sscanf(tmp, "%s %d", path , &flag);
+            printf("Open %s\n", path);
+            token = nfs_open(path, flag);
+            sprintf(message, "%d#%d.%s", magic_number, reboot_number, token);
             break;
         case 'r':
             if (reboot_number != my_reboot)
@@ -147,7 +160,7 @@ void *execute_command(void *arg){
             }
             sscanf(tmp, "%d %d", &fd, &seek);
             sprintf(temp, "%d %d ",fd, seek);
-            tmp = strtok(tmp,temp);
+            token = strtok(tmp,temp);
             if (!strcmp(tmp,"$#trun#$"))
             {
                nfs_ftruncate(fd, strlen(buffer)); 

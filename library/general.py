@@ -42,7 +42,7 @@ class General:
 
     def mynfs_open(self, path, flags):
 
-        message = "o " + path + " " + str(flags)
+        message = "o " + str(0) + "#" + path + " " + str(flags)
         resv = self.network.send_message(message, "o", 0)
         if "File Not Created" not in resv:
             id, last_mod, size = resv.split("#")

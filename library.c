@@ -40,7 +40,8 @@ int mynfs_open(char *filename, int flags)
     int fd;
     File_t *file;
     struct stat stat_buf;
-    
+
+    printf("Opening file %s\n", filename);   
     fd = open(filename, flags);
     if(fd == 0)
     {

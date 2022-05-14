@@ -123,6 +123,7 @@ void *execute_command(void *arg){
         sprintf(temp,"%d %c %d#", magic_number, command, reboot_number);
         
         token = strtok(buffer, temp);
+        memset(tmp, '\0', sizeof(tmp));
         while (token != NULL)
         {
             strcat (tmp, token);
@@ -130,13 +131,12 @@ void *execute_command(void *arg){
             token = strtok(NULL, " ");
         }
         
-        printf("%s\n", tmp);
-
 
         switch (command)
         {
         case 'o':
             /* Open - Find file in Disk */
+            memset(path,'\0', sizeof(path));
             sscanf(tmp, "%s %d", path , &flag);
             printf("Open %s\n", path);
             token = nfs_open(path, flag);

@@ -22,11 +22,20 @@ AEM : 03121 & 02995
 #include <fcntl.h>
 
 File_t *file_buf;
+Id_t *id_buf;
+
+int count_fd = 0;
 
 int mynfs_init()
 {
-    file_buf = (File_t *) calloc(BUF_LEN, sizeof(File_t));
+    file_buf = (File_t *) calloc(BUF_LEN/2, sizeof(File_t));
     if(file_buf == NULL)
+    {
+        perror("ERROR in Calloc");
+        exit(1);
+    }
+    id_buf = (Id_t *) calloc(BUF_LEN * 2, sizeof(Id_t));
+    if(id_buf == NULL)
     {
         perror("ERROR in Calloc");
         exit(1);
@@ -40,36 +49,40 @@ int mynfs_open(char *filename, int flags)
     int fd;
     File_t *file;
     struct stat stat_buf;
+    char *fi;
 
     printf("Opening file %s\n", filename);   
-    fd = open(filename, flags);
-    if(fd == 0)
-    {
-        return -1;
-    }
 
-    for(int i = 0; i < BUF_LEN; i++)
+    for(int i = 0; i < BUF_LEN/2; i++)
     {
         
         if(file_buf[i].fd == 0)
         {
+            fd = open(filename, flags);
+            if(fd == 0)
+            {
+                return -1;
+            }
             file = &file_buf[i];
-            file->filename = filename;
+            strcat(file->filename, filename);
             file->flags = flags;
             file->id = i;
             file->fd = fd;
             file->timestamp = 0;
             fstat(fd, &stat_buf);
             file->size = stat_buf.st_size;
-            return file->id;
+            id_buf[count_fd].id = i;
+            id_buf[count_fd].open_id = count_fd;
+            return count_fd++;
         }
-        else 
+        fi = file_buf[i].filename;
+        if(strcmp(fi, filename) == 0)
         {
+            printf("File already open\n");
             file = &file_buf[i];
-            if(file->filename == filename && file->flags == flags)
-            {
-                return file->id;
-            }
+            id_buf[count_fd].id = i;
+            id_buf[count_fd].open_id = count_fd;
+            return count_fd++;
         }
     }
     perror("ERROR in Open : Buffer is full");
@@ -107,16 +120,17 @@ int mynfs_close(int fd)
 
 char *nfs_open(char *filename, int flags)
 {
-    int fd;
+    int fd, tmp;
     char *message;
-    //int last_modified, size;
+    
 
     fd = mynfs_open(filename, flags);
     if(fd < 0)
     {
         return "File Not Created";
     }
-    sprintf(message, "%d#%d#%d", fd, file_buf[fd].timestamp, (int)file_buf[fd].size);
+    tmp = id_buf[fd].id;
+    sprintf(message, "%d#%d#%d", fd, file_buf[tmp].timestamp, (int)file_buf[tmp].size);
     
     return message;
 }

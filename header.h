@@ -38,19 +38,13 @@ typedef struct client_info
 
 typedef struct open_info
 {
-    char filename[254];
+    char *filename;
     int flags;
     int id;
     int fd;
     double size;
     int timestamp;  
 }File_t;
-
-typedef struct id_info
-{
-    int id;
-    int open_id;
-}Id_t;
 
 /********************** GLOBALS **********************/
 

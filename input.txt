@@ -1,0 +1,9 @@
+#SIMPLESCRIPT
+
+SET $a 3
+SET $b 5
+SET $c 0
+ADD $c $a $b
+PRN $c
+
+RET

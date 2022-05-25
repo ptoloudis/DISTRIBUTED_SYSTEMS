@@ -6,15 +6,21 @@ import re
 from time import sleep
 
 
-
-
-def parse(file, id, args, arg):
+def parse(file_name, id, args, arg):
     varArray = []
     LabelArray = []
+
+
     for i in range(args):
         varArray.append(arg[i])
 
-    file = open(file, "r")
+    try:
+        file = open(file_name, "r")
+    except:
+        print("File not found")
+        return
+
+    Fd_label: Find_label = Find_label(file, 0)
 
     if file.readline().strip() != "#SIMPLESCRIPT":
         print("Invalid file")
@@ -22,30 +28,38 @@ def parse(file, id, args, arg):
         exit(1)
 
     while True:
-        print(varArray)
         position = file.tell()
         line = file.readline()
-        if line == "" :
+
+        if line == "":
             print("File Finished")
             break
         line = line.strip()
+
         if line == "":
             continue
+
         if line == "RET":
             print("RET")
             break
         line = re.sub("\s+", " ", line)
+
         if line[0] == "#":
-            label,line = line.split("",1)
-            current = LabelArray_find(label)
-            if current == None:
+            label, line = line.split(" ", 1)
+            if LabelArray == []:
                 LabelArray.append(Label(label, position))
             else:
-                if current.position != position:
-                    print("Label already exists")
-                    file.close()
-                    exit(1)
+                current = LabelArray_find(label, LabelArray)
+                if current is None:
+                    LabelArray.append(Label(label, position))
+                else:
+                    if current.position != position:
+                        print("Label already exists")
+                        file.close()
+                        exit(1)
+
         operation, line = line.split(" ", 1)
+
         if operation == "SET":
             var, value = line.split(" ", 1)
             print("SET", var, value)
@@ -53,24 +67,24 @@ def parse(file, id, args, arg):
                 if value[0] == "\"":
                     var = variables(var, "STRING", value)
                 else:
-                    var = variables(var, "INTEGER", value)
+                    var = variables(var, "INTEGER", int(value))
 
                 varArray.append(var)
                 continue
-            var = varArray_find(var, varArray)
-            if var == None:
+            Var = varArray_find(var, varArray)
+            if Var is None:
                 if value[0] == "\"":
                     var = variables(var, "STRING", value)
                 else:
-                    var = variables(var, "INTEGER", value)
+                    var = variables(var, "INTEGER", int(value))
 
                 varArray.append(var)
             else:
                 if value[0] == "\"" and var.type == "STRING":
-                    
+
                     var.value = value
                 elif value[0] != "\"" and var.type == "INTEGER":
-                    var.value = value
+                    var.value = int(value)
                 else:
                     print("ERROR : Different type of values\n")
                     file.close()
@@ -81,8 +95,8 @@ def parse(file, id, args, arg):
             if var[0] == "$":
                 print(var)
                 Val = varArray_find(var, varArray)
-                if Val == None:
-                    print("Variable: "+var+" does not exist\n")
+                if Val is None:
+                    print("Variable: " + var + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Val.type != "INTEGER":
@@ -95,8 +109,8 @@ def parse(file, id, args, arg):
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -104,14 +118,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = int(Value.value) 
+                    tmp = int(Value.value)
             else:
-                tmp = int(value)
-                    
+                tmp = value
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -119,19 +133,19 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
-                tmp2 = int(value2)
-            
+                tmp2 = value2
+
             Val.value = tmp + tmp2
 
-        
+
         elif operation == "SUB":
             var, value, value2 = line.split(" ", 2)
             if var[0] == "$":
                 Val = varArray_find(var, varArray)
-                if Val == None:
-                    print("Variable: "+var+" does not exist\n")
+                if Val is None:
+                    print("Variable: " + var + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Val.type != "INTEGER":
@@ -143,8 +157,8 @@ def parse(file, id, args, arg):
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -152,14 +166,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -167,19 +181,19 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             Val.value = tmp - tmp2
 
-        
+
         elif operation == "MUL":
             var, value, value2 = line.split(" ", 2)
             if var[0] == "$":
                 Val = varArray_find(var, varArray)
-                if Val == None:
-                    print("Variable: "+var+" does not exist\n")
+                if Val is None:
+                    print("Variable: " + var + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Val.type != "INTEGER":
@@ -192,8 +206,8 @@ def parse(file, id, args, arg):
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -201,14 +215,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -216,19 +230,19 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             Val.value = tmp * tmp2
 
-        
+
         elif operation == "DIV":
             var, value, value2 = line.split(" ", 2)
             if var[0] == "$":
                 Val = varArray_find(var, varArray)
-                if Val == None:
-                    print("Variable: "+var+" does not exist\n")
+                if Val is None:
+                    print("Variable: " + var + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Val.type != "INTEGER":
@@ -241,8 +255,8 @@ def parse(file, id, args, arg):
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -250,14 +264,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -265,19 +279,19 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             Val.value = tmp / tmp2
 
-        
+
         elif operation == "MOD":
             var, value, value2 = line.split(" ", 2)
             if var[0] == "$":
                 Val = varArray_find(var, varArray)
                 if Val == None:
-                    print("Variable: "+var+" does not exist\n")
+                    print("Variable: " + var + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Val.type != "INTEGER":
@@ -290,8 +304,8 @@ def parse(file, id, args, arg):
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -299,14 +313,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -314,18 +328,18 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             Val.value = tmp % tmp2
 
         elif operation == "BGT":
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -333,14 +347,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -348,16 +362,21 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             if tmp > tmp2:
-                Label1 = LabelArray_find(label)
-                if Label1 == None:
-                    print("Label: "+label+" does not exist\n")
-                    file.close()
-                    exit(1)
+                Label1 = LabelArray_find(label, LabelArray)
+                if Label1 is None:
+                    Fd_label.set_position(position)
+                    result, LabelArray = Fd_label.run(label, LabelArray)
+                    if result is None:
+                        print("Label: " + label + " does not exist\n")
+                        file.close()
+                        exit(1)
+                    else:
+                        file.seek(result.position, 0)
                 else:
                     file.seek(Label1.position, 0)
 
@@ -366,8 +385,8 @@ def parse(file, id, args, arg):
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -375,14 +394,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -390,27 +409,31 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             if tmp >= tmp2:
-                Label1 = LabelArray_find(label)
-                if Label1 == None:
-                    print("Label: "+label+" does not exist\n")
-                    file.close()
-                    exit(1)
+                Label1 = LabelArray_find(label, LabelArray)
+                if Label1 is None:
+                    Fd_label.set_position(position)
+                    result, LabelArray = Fd_label.run(label, LabelArray)
+                    if result is None:
+                        print("Label: " + label + " does not exist\n")
+                        file.close()
+                        exit(1)
+                    else:
+                        file.seek(result.position, 0)
                 else:
                     file.seek(Label1.position, 0)
-
 
 
         elif operation == "BLT":
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -418,14 +441,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -433,26 +456,30 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             if tmp < tmp2:
-                Label1 = LabelArray_find(label)
-                if Label1 == None:
-                    print("Label: "+label+" does not exist\n")
-                    file.close()
-                    exit(1)
+                Label1 = LabelArray_find(label, LabelArray)
+                if Label1 is None:
+                    Fd_label.set_position(position)
+                    result, LabelArray = Fd_label.run(label, LabelArray)
+                    if result is None:
+                        print("Label: " + label + " does not exist\n")
+                        file.close()
+                        exit(1)
+                    else:
+                        file.seek(result.position, 0)
                 else:
                     file.seek(Label1.position, 0)
 
-        
         elif operation == "BLE":
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -460,14 +487,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
-                Value2 = varArray_find(value2,varArray)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                Value2 = varArray_find(value2, varArray)
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -475,16 +502,21 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             if tmp <= tmp2:
-                Label1 = LabelArray_find(label)
-                if Label1 == None:
-                    print("Label: "+label+" does not exist\n")
-                    file.close()
-                    exit(1)
+                Label1 = LabelArray_find(label, LabelArray)
+                if Label1 is None:
+                    Fd_label.set_position(position)
+                    result, LabelArray = Fd_label.run(label, LabelArray)
+                    if result is None:
+                        print("Label: " + label + " does not exist\n")
+                        file.close()
+                        exit(1)
+                    else:
+                        file.seek(result.position, 0)
                 else:
                     file.seek(Label1.position, 0)
 
@@ -493,8 +525,8 @@ def parse(file, id, args, arg):
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
-                if Value == None:
-                    print("Variable: "+value+" does not exist\n")
+                if Value is None:
+                    print("Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
@@ -502,14 +534,14 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value 
+                    tmp = Value.value
             else:
                 tmp = int(value)
-                    
+
             if value2[0] == "$":
                 Value2 = varArray_find(value2)
-                if Value2 == None:
-                    print("Variable: "+value2+" does not exist\n")
+                if Value2 is None:
+                    print("Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
@@ -517,52 +549,67 @@ def parse(file, id, args, arg):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value 
+                    tmp2 = Value2.value
             else:
                 tmp2 = int(value2)
-            
+
             if tmp == tmp2:
-                Label1 = LabelArray_find(label)
-                if Label1 == None:
-                    print("Label: "+label+" does not exist\n")
-                    file.close()
-                    exit(1)
+                Label1 = LabelArray_find(label, LabelArray)
+                if Label1 is None:
+                    Fd_label.set_position(position)
+                    result, LabelArray = Fd_label.run(label, LabelArray)
+                    if result is None:
+                        print("Label: " + label + " does not exist\n")
+                        file.close()
+                        exit(1)
+                    else:
+                        file.seek(result.position, 0)
                 else:
                     file.seek(Label1.position, 0)
 
 
         elif operation == "BRA":
             label = line
-            Label1 = LabelArray_find(label)
-            if Label1 == None:
-                print("Label: "+label+" does not exist\n")
-                file.close()
-                exit(1)
+            Label1 = LabelArray_find(label, LabelArray)
+            if Label1 is None:
+                Fd_label.set_position(position)
+                result, LabelArray = Fd_label.run(label, LabelArray)
+                if result is None:
+                    print("Label: " + label + " does not exist\n")
+                    file.close()
+                    exit(1)
+                else:
+                    file.seek(result.position, 0)
             else:
                 file.seek(Label1.position, 0)
 
         elif operation == "SLP":
             var = line
-            if var[0] == "$" or var[0] =="\"":
+            if var[0] == "$" or var[0] == "\"":
                 print("Not int in SLP\n")
                 file.close()
                 exit(1)
             sleep(int(var))
 
         elif operation == "PRN":
-            var = line
-            if var[0] != "$":
-                print("NOT is var\n")
-                file.close()
-                exit(1)
-            x = varArray_find(var, varArray)
-            if x != None:
-                print("#",id,": ",x.value)
-            else:
-                print("Not find "+var)
+            print("#", id, ": ", end="")
+            while line != "":
+                try:
+                    var, line = line.split(" ", 1)
+                except:
+                    var = line
+                    line = ""
+                if var[0] != "$":
+                    print(var, end=" ")
+                else:
+                    x = varArray_find(var, varArray)
+                    if x is not None:
+                        print(x.value, end=" ")
+                    else:
+                        print("Not find " + var)
+            print()
 
     file.close()
-        
 
 
-parse("input.txt",0,0,None)
+parse("input.txt", 0, 0, None)

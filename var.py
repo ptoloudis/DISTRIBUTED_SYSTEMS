@@ -63,7 +63,7 @@ class Find_label:
                         break
                 else:
                     if current.position != position:
-                        print("Label already exists")
+                        print("Label "+label +" already exists")
                         file.close()
                         exit(1)
         self.position = file.tell()

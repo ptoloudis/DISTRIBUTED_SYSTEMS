@@ -1,8 +1,6 @@
 #SIMPLESCRIPT
 
 SET $a 2
-SUB $a $a 1
-PRN $a
-BRA #label
-#label PRN "Hi"
+SUB $c $a 1
+PRN $c
 RET

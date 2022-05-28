@@ -1,11 +1,14 @@
 # File parser for SIMPLESCRIPT language
 
 from __future__ import print_function
+from threading import Lock
 
 from var import *
 import re
 from time import sleep
 import sys
+
+mutex = Lock()
 
 
 def eprint(*args, **kwargs):
@@ -17,10 +20,14 @@ def parse(file_name, id, args, *arg):
     varArray = []
     LabelArray = []
 
+    varArray.append(variables("$args", "INTEGER", int(args)))
 
     for i in range(args):
         tmp = "$arg" + str(i)
-        varArray.append(variables(tmp, "INTEGER", int(arg[i])))
+        if arg[i][0] == "\"":
+            varArray.append(variables(tmp, "STRING", arg[i]))
+        else:
+            varArray.append(variables(tmp, "INTEGER", int(arg[i])))
 
     try:
         file = open(file_name, "r")
@@ -65,8 +72,11 @@ def parse(file_name, id, args, *arg):
                         eprint("Label "+label+" already exists")
                         file.close()
                         exit(1)
-
-        operation, line = line.split(" ", 1)
+        try:
+            operation, line = line.split(" ", 1)
+        except:
+            operation = line
+            line = ""
 
         if operation == "SET":
             var, value = line.split(" ", 1)
@@ -632,6 +642,52 @@ def parse(file_name, id, args, *arg):
                     exit(1)
                 file.seek(Label1.position, 0)
 
+        elif operation == "SND":
+            label = line
+            Label1 = LabelArray_find(label, LabelArray)
+            if Label1 is None:
+                Fd_label.set_position(position)
+                result, LabelArray = Fd_label.run(label, LabelArray)
+                if result is None:
+                    eprint("Label: " + label + " does not exist\n")
+                    file.close()
+                    exit(1)
+                else:
+                    if position == result.position:
+                        eprint("ERROR : Infinite loop\n")
+                        file.close()
+                        exit(1)
+                    file.seek(result.position, 0)
+            else:
+                if position == Label1.position:
+                    eprint("ERROR : Infinite loop\n")
+                    file.close()
+                    exit(1)
+                file.seek(Label1.position, 0)
+
+        elif operation == "RCV":
+            label = line
+            Label1 = LabelArray_find(label, LabelArray)
+            if Label1 is None:
+                Fd_label.set_position(position)
+                result, LabelArray = Fd_label.run(label, LabelArray)
+                if result is None:
+                    eprint("Label: " + label + " does not exist\n")
+                    file.close()
+                    exit(1)
+                else:
+                    if position == result.position:
+                        eprint("ERROR : Infinite loop\n")
+                        file.close()
+                        exit(1)
+                    file.seek(result.position, 0)
+            else:
+                if position == Label1.position:
+                    eprint("ERROR : Infinite loop\n")
+                    file.close()
+                    exit(1)
+                file.seek(Label1.position, 0)
+
         elif operation == "SLP":
             var = line
             if var[0] == "$" or var[0] == "\"":
@@ -640,7 +696,9 @@ def parse(file_name, id, args, *arg):
                 exit(1)
             sleep(int(var))
 
+
         elif operation == "PRN":
+            mutex.acquire()
             print("#", id, ": ", end="")
             while line != "":
                 try:
@@ -658,8 +716,26 @@ def parse(file_name, id, args, *arg):
                         eprint("Not find " + var)
             print()
             sys.stdout.flush()
-
+            mutex.release()
+    
+    for z in mylist:
+        if z.id == id:
+            mylist.remove(z)
     file.close()
 
 
-parse("input.txt", 0, 0, None)
+#parse("input.txt", 0, 0, None)
+
+mylist = []
+from multiprocessing import Process
+class myList:
+    def __init__ (self, id, program_name, args, pros):
+        self.id = id
+        self.program_name = program_name  
+        self.args = args 
+        self.pros: Process = pros
+    def __str__(self):
+        return str(self.id) + " " + self.program_name + " " + self.args 
+
+    def get_pros(self):
+        return self.pros

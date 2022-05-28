@@ -3,4 +3,6 @@
 SET $a 2
 SUB $c $a 1
 PRN $c
+SLP 10
+
 RET

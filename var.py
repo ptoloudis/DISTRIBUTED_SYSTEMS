@@ -68,3 +68,5 @@ class Find_label:
                         exit(1)
         self.position = file.tell()
         return LabelArray_find(name, LabelArray), LabelArray
+
+

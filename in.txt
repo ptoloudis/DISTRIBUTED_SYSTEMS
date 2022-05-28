@@ -1,0 +1,12 @@
+#SIMPLESCRIPT
+
+SET $a 5
+SET $b 3
+BLE $a $b #Label1
+PRN $a
+BRA #exit
+
+#Label1 SUB $c $a 2
+
+PRN $c
+#exit RET

@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
-from cmath import e
-from threading import Thread
+
 import parser
-
-from multiprocessing import Process
-
-
+import multiprocessing
 
 group = 0
+print("\033[35m press help form manual \033[0m")
 
 while 1:
-    input("Press Enter to continue...")
-    input1 = input("Enter the command: ")
-    if input1 == "":
-        pass
-        #Help
-        #print("Help: run, list, kill")
+    input1 = input("\033[35m Enter the command: \033[0m")
+    if input1 == "help":
+        ms = " Run the program: run <filename> <argv>\n View the running program: list\n Kill a program: kill<id>\n View the help: help\n Exit: exit\n Shutdown: shutdown\n"
+        print("\033[35m"+ms+"\033[0m")
+
     try:
         operation, input1 = input1.split(" ", 1)
     except:
@@ -40,25 +36,32 @@ while 1:
             tmp = group.__str__() + "." + id.__str__()
             id += 1
             
-            pros = Process(target= parser.parse, args=(fileName, tmp, len(args), args)).start()
-            info = parser.myList(tmp, fileName, args, pros)
-            parser.mylist.append(info)
+            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args))
+            pros.start()
+            parser.mylist.input(tmp, fileName, args, pros)
 
             if input1 == "":
                 break
 
     elif operation == "list":
         parser.mutex.acquire()
-        print("The list of running programs:")
-        for i in parser.mylist:
-            print(i.__str__())
+        parser.mylist.__str__()
         parser.mutex.release()
+
     elif operation == "kill":
-        for j in parser.mylist:
-            if j.id == input1:
-                proc = j.get_pros()
-                proc.terminate()
-                parser.mylist.remove(j)
-                break
+        x = parser.mylist.get_pros(input1)
+        if x == None:
+            print("\033[35mNo such process\033[0m\n")
+        else:
+            x.terminate()
+            x.join()
+            print("\033[35mProcess " + input1 + " killed\033[0m\n")
+    
     elif operation == "exit":
+        print("\033[35mThe system closes.\033[0m\n")
         exit(0)
+    elif operation == "shutdown":
+        print("\033[35mThe system shuts down.\033[0m\n")
+        exit(0)
+
+    input("\033[35mPress Enter to continue...\033[0m\n")

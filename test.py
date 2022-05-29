@@ -1,0 +1,5 @@
+print("\033[32m TESTING \033[0m")
+print("\033[33m TESTING \033[0m")
+print("\033[34m TESTING \033[0m")
+print("\033[35m TESTING \033[0m")
+print("\033[36m TESTING \033[0m")

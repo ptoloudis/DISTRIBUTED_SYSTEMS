@@ -1,12 +1,7 @@
 #SIMPLESCRIPT
 
-SET $a 5
-SET $b 3
-BLE $a $b #Label1
-PRN $a
-BRA #exit
+PRN $arg0
+PRN $arg1
+PRN $arg2
+PRN $args
 
-#Label1 SUB $c $a 2
-
-PRN $c
-#exit RET

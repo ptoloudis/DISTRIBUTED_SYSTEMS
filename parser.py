@@ -2,13 +2,57 @@
 
 from __future__ import print_function
 from threading import Lock
-
+from multiprocessing import Process
 from var import *
-import re
 from time import sleep
+
+import re
 import sys
 
 mutex = Lock()
+
+class myList:
+    def __init__(self):
+        self.list = []
+    def input(self, id, name, args, pros):
+        for i in self.list:
+            z = i.get_pros()
+            if not z.is_alive():
+                self.list.remove(i)
+        tmp = process(id, name, args, pros)
+        self.list.append(tmp)
+
+    def __str__(self):
+        for i in self.list:
+            z = i.get_pros()
+            if not z.is_alive():
+                self.list.remove(i)
+        for i in self.list:
+            print(i.__str__())
+
+    def get_pros(self, id):
+        for i in self.list:
+            if i.id == id:
+                return i.get_pros()
+
+    def __del__(self):
+        self.list = []
+
+
+mylist = myList()
+
+
+class process:
+    def __init__(self, id, program_name, args, pros: Process):
+        self.id = id
+        self.program_name = program_name  
+        self.args = args 
+        self.pros: Process = pros
+    def __str__(self):
+        return str(self.id) + " " + self.program_name + " " + self.args 
+
+    def get_pros(self):
+        return self.pros
 
 
 def eprint(*args, **kwargs):
@@ -16,18 +60,28 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def parse(file_name, id, args, *arg):
+def parse(file_name, id, arg):
     varArray = []
     LabelArray = []
 
-    varArray.append(variables("$args", "INTEGER", int(args)))
 
-    for i in range(args):
-        tmp = "$arg" + str(i)
-        if arg[i][0] == "\"":
-            varArray.append(variables(tmp, "STRING", arg[i]))
+    varArray.append(variables("$arg0", "STRING", file_name))
+
+    args = 0
+    while arg != "":
+        tmp = "$arg" + str(args+1)
+        try:
+            temp, arg = arg.split(" ", 1)
+        except:
+            temp = arg
+            arg = ""
+        if temp[0] == "\"":
+            varArray.append(variables(tmp, "STRING", temp))
         else:
-            varArray.append(variables(tmp, "INTEGER", int(arg[i])))
+            varArray.append(variables(tmp, "INTEGER", int(temp)))
+        args += 1
+
+    varArray.append(variables("$args", "INTEGER", args + 1 ))
 
     try:
         file = open(file_name, "r")
@@ -57,6 +111,7 @@ def parse(file_name, id, args, *arg):
         if line == "RET":
             print("RETURN")
             break
+            
         line = re.sub("\s+", " ", line)
 
         if line[0] == "#":
@@ -717,25 +772,6 @@ def parse(file_name, id, args, *arg):
             print()
             sys.stdout.flush()
             mutex.release()
-    
-    for z in mylist:
-        if z.id == id:
-            mylist.remove(z)
-    file.close()
 
 
 #parse("input.txt", 0, 0, None)
-
-mylist = []
-from multiprocessing import Process
-class myList:
-    def __init__ (self, id, program_name, args, pros):
-        self.id = id
-        self.program_name = program_name  
-        self.args = args 
-        self.pros: Process = pros
-    def __str__(self):
-        return str(self.id) + " " + self.program_name + " " + self.args 
-
-    def get_pros(self):
-        return self.pros

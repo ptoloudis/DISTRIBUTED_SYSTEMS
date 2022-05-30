@@ -4,4 +4,5 @@ PRN $arg0
 PRN $arg1
 PRN $arg2
 PRN $args
+SLP 20
 

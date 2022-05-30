@@ -3,6 +3,6 @@
 SET $a 2
 SUB $c $a 1
 PRN $c
-SLP 5
+SLP 20
 
 RET

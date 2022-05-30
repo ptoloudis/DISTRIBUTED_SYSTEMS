@@ -49,13 +49,17 @@ while 1:
         parser.mutex.release()
 
     elif operation == "kill":
-        x = parser.mylist.get_pros(input1)
-        if x == None:
-            print("\033[35mNo such process\033[0m\n")
-        else:
-            x.terminate()
-            x.join()
-            print("\033[35mProcess " + input1 + " killed\033[0m\n")
+        i = 0
+        while True:
+            kill = input1 + "." + i.__str__()
+            x = parser.mylist.get_pros(kill)
+            if x == None:
+                break
+            else:
+                x.terminate()
+                x.join()
+                print("\033[35mProcess " + kill + " killed\033[0m\n")
+            i += 1
     
     elif operation == "exit":
         print("\033[35mThe system closes.\033[0m\n")

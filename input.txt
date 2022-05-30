@@ -1,8 +1,6 @@
 #SIMPLESCRIPT
 
-SET $a 2
-SUB $c $a 1
-PRN $c
-SLP 20
+SND "1.1" 1
+
 
 RET

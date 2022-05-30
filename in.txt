@@ -1,8 +1,3 @@
 #SIMPLESCRIPT
 
-PRN $arg0
-PRN $arg1
-PRN $arg2
-PRN $args
-SLP 20
-
+RCV "1.0" 1

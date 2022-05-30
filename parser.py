@@ -1,6 +1,5 @@
 # File parser for SIMPLESCRIPT language
 
-from __future__ import print_function
 from threading import Lock
 from multiprocessing import Process
 from var import *
@@ -9,7 +8,10 @@ from time import sleep
 import re
 import sys
 
+
+mtx = Lock()
 mutex = Lock()
+buffer:Buffer = []
 
 class myList:
     def __init__(self):
@@ -73,7 +75,7 @@ def parse(file_name, id, arg):
         try:
             temp, arg = arg.split(" ", 1)
         except:
-            temp = arg
+            temp = arg                  #@195.558.52.2:54254/1.1 v       @195.558.52.2:54253/1.1
             arg = ""
         if temp[0] == "\"":
             varArray.append(variables(tmp, "STRING", temp))
@@ -698,50 +700,87 @@ def parse(file_name, id, arg):
                 file.seek(Label1.position, 0)
 
         elif operation == "SND":
-            label = line
-            Label1 = LabelArray_find(label, LabelArray)
-            if Label1 is None:
-                Fd_label.set_position(position)
-                result, LabelArray = Fd_label.run(label, LabelArray)
-                if result is None:
-                    eprint("Label: " + label + " does not exist\n")
+            data = []
+            id2, value = line.split(" ", 1)
+            if id2[0] == "$":
+                Value = varArray_find(id2, varArray)
+                if Value is None:
+                    eprint("Variable: " + id2 + " does not exist\n")
                     file.close()
                     exit(1)
                 else:
-                    if position == result.position:
-                        eprint("ERROR : Infinite loop\n")
+                    id2 = Value.value
+            while True:
+                if value == "":
+                    break
+                try:
+                    tmp_data , value = value.split(" ", 1)
+                except:
+                    tmp_data = value
+                    value = ""
+                if tmp_data[0] == "$":
+                    Value = varArray_find(tmp_data, varArray)
+                    if Value is None:
+                        eprint("Variable: " + tmp_data + " does not exist\n")
                         file.close()
                         exit(1)
-                    file.seek(result.position, 0)
-            else:
-                if position == Label1.position:
-                    eprint("ERROR : Infinite loop\n")
-                    file.close()
-                    exit(1)
-                file.seek(Label1.position, 0)
-
+                    else:
+                        tmp_data = Value.value
+                data.append(tmp_data)
+            mtx.acquire()
+            z = Buffer(id,id2,tuple(data))
+            buffer.append(z)
+            pos = z.get_position()
+            mtx.release()
+            while BufferArray_find_pos(pos, buffer) is False:
+                sleep(1)
+            mtx.acquire()
+            buffer.remove(z)
+            mtx.release()
+            
         elif operation == "RCV":
-            label = line
-            Label1 = LabelArray_find(label, LabelArray)
-            if Label1 is None:
-                Fd_label.set_position(position)
-                result, LabelArray = Fd_label.run(label, LabelArray)
-                if result is None:
-                    eprint("Label: " + label + " does not exist\n")
+            var = []
+            data = []
+            data2 = []
+            id1, value = line.split(" ", 1)
+            if id1[0] == "$":
+                Value = varArray_find(id1, varArray)
+                if Value is None:
+                    eprint("Variable: " + id1 + " does not exist\n")
                     file.close()
                     exit(1)
                 else:
-                    if position == result.position:
-                        eprint("ERROR : Infinite loop\n")
-                        file.close()
-                        exit(1)
-                    file.seek(result.position, 0)
-            else:
-                if position == Label1.position:
-                    eprint("ERROR : Infinite loop\n")
-                    file.close()
-                    exit(1)
-                file.seek(Label1.position, 0)
+                    id1 = Value.value
+            while True:
+                if value == "":
+                    break
+                try:
+                    tmp_data , value = value.split(" ", 1)
+                except:
+                    tmp_data = value
+                    value = ""
+                if tmp_data[0] == "$":
+                    Value = varArray_find(tmp_data, varArray)
+                    if Value is None:
+                        var.append(tmp_data)
+                        tmp_data = None
+                    else:
+                        tmp_data = Value.value
+                data.append(tmp_data)
+            data = tuple(data)
+            print(type(id))
+            id2 = id
+            data2 = BufferArray_find(id1, id2, data, BufferArray=buffer)
+            data2 = list(data2)
+            for i in range(len(data2)):
+                if data[i] is None:
+                    if value[0] == "\"":
+                        varx = variables(var[i], "STRING", data2[i])
+                    else:
+                        varx = variables(var[i], "INTEGER", int(data2[i]))
+                    varArray.append(varx)
+
+            
 
         elif operation == "SLP":
             var = line

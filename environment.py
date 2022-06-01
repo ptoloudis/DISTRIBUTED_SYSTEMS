@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-
 import parser
 import multiprocessing
 
+buffer = multiprocessing.Manager().list()
 group = 0
 print("\033[35m press help form manual \033[0m")
 
@@ -36,7 +36,7 @@ while 1:
             tmp = group.__str__() + "." + id.__str__()
             id += 1
             
-            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args))
+            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer))
             pros.start()
             parser.mylist.input(tmp, fileName, args, pros)
 

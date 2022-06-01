@@ -11,7 +11,6 @@ import sys
 
 mtx = Lock()
 mutex = Lock()
-buffer:Buffer = []
 
 class myList:
     def __init__(self):
@@ -40,9 +39,7 @@ class myList:
     def __del__(self):
         self.list = []
 
-
 mylist = myList()
-
 
 class process:
     def __init__(self, id, program_name, args, pros: Process):
@@ -56,16 +53,14 @@ class process:
     def get_pros(self):
         return self.pros
 
-
 def eprint(*args, **kwargs):
     sys.stdout.flush()
     print(*args, file=sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def parse(file_name, id, arg):
-    varArray = []
-    LabelArray = []
-
+def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
+    varArray = varArr
+    LabelArray = LabelArr
 
     varArray.append(variables("$arg0", "STRING", file_name))
 
@@ -714,7 +709,7 @@ def parse(file_name, id, arg):
                 if value == "":
                     break
                 try:
-                    tmp_data , value = value.split(" ", 1)
+                    tmp_data, value = value.split(" ", 1)
                 except:
                     tmp_data = value
                     value = ""
@@ -728,20 +723,18 @@ def parse(file_name, id, arg):
                         tmp_data = Value.value
                 data.append(tmp_data)
             mtx.acquire()
-            z = Buffer(id,id2,tuple(data))
-            buffer.append(z)
+            z = Buffer(id, id2, tuple(data))
+            BufferArray.append(z)
             pos = z.get_position()
             mtx.release()
-            while BufferArray_find_pos(pos, buffer) is False:
+            while BufferArray_find_pos(pos, BufferArray) is False:
                 sleep(1)
             mtx.acquire()
-            buffer.remove(z)
             mtx.release()
             
         elif operation == "RCV":
             var = []
             data = []
-            data2 = []
             id1, value = line.split(" ", 1)
             if id1[0] == "$":
                 Value = varArray_find(id1, varArray)
@@ -755,7 +748,7 @@ def parse(file_name, id, arg):
                 if value == "":
                     break
                 try:
-                    tmp_data , value = value.split(" ", 1)
+                    tmp_data, value = value.split(" ", 1)
                 except:
                     tmp_data = value
                     value = ""
@@ -768,19 +761,19 @@ def parse(file_name, id, arg):
                         tmp_data = Value.value
                 data.append(tmp_data)
             data = tuple(data)
-            print(type(id))
             id2 = id
-            data2 = BufferArray_find(id1, id2, data, BufferArray=buffer)
-            data2 = list(data2)
+            data2 = BufferArray_find(id1, id2, data, BufferArray=BufferArray)
+            data2 = list(data2[0])
             for i in range(len(data2)):
                 if data[i] is None:
-                    if value[0] == "\"":
+                    if data2[i] == "\"":
                         varx = variables(var[i], "STRING", data2[i])
                     else:
                         varx = variables(var[i], "INTEGER", int(data2[i]))
                     varArray.append(varx)
+            var.clear()
 
-            
+
 
         elif operation == "SLP":
             var = line
@@ -811,6 +804,3 @@ def parse(file_name, id, arg):
             print()
             sys.stdout.flush()
             mutex.release()
-
-
-#parse("input.txt", 0, 0, None)

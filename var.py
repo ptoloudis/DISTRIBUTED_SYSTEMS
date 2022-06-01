@@ -1,4 +1,5 @@
 from re import sub
+from time import sleep
 class variables:
     def __init__(self, name, type, value):
         self.name = name
@@ -72,6 +73,7 @@ class Find_label:
 
 pos = 0
 
+
 class Buffer:
     def __init__(self, id1, id2, *msg):
         global pos
@@ -86,12 +88,15 @@ class Buffer:
         return self.position 
     def get_finished(self):
         return self.finished
+    def set_finished(self):
+        print("set finished")
+        self.finished = True
 
 def BufferArray_find_pos(pos, BufferArray):
     for i in range(len(BufferArray)):
         if BufferArray[i].position == pos:
-            return BufferArray[i].get_finished()
-    return None
+            return False
+    return True
 
 def BufferArray_find(id1, id2, *data, BufferArray):
     while True:
@@ -99,9 +104,10 @@ def BufferArray_find(id1, id2, *data, BufferArray):
             k = 0
             if BufferArray[i].id1 == id1 and BufferArray[i].id2 == id2:
                 for j in range(len(BufferArray[i].msg)):
-                    if BufferArray[i].msg[j] == data[j] or data[j] == None:
+                    if BufferArray[i].msg[j] == data[j] or data[j][0] == None:
                         k += 1
                         if k == len(BufferArray[i].msg):
-                            BufferArray[i].finshed = True
-                            return BufferArray[i].msg
-    
+                            msg = BufferArray[i].msg
+                            BufferArray.pop(i)
+                            return msg
+        sleep(2)

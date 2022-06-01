@@ -1,3 +1,4 @@
 #SIMPLESCRIPT
 
-RCV "1.0" 1
+RCV 1.0 $a
+PRN $a

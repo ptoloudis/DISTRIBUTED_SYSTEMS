@@ -1,6 +1,5 @@
 #SIMPLESCRIPT
 
-SND "1.1" 1
-
+SND 1.1 1
 
 RET

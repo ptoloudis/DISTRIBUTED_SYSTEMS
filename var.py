@@ -5,6 +5,10 @@ class variables:
         self.name = name
         self.type = type
         self.value = value
+
+    def __str__(self):
+        return self.name + " " + self.type + " " + self.value.__str__()
+
     def get_name(self):
         return self.name
     
@@ -16,9 +20,13 @@ def varArray_find(name, varArray):
 
 
 class Label:
-    def __init__(self, name, position):
+    def __init__(self, name, position, line):
         self.name = name
         self.position = position
+        self.line = line
+
+    def __str__(self):
+        return self.name + " " + self.position.__str__()
 
 def LabelArray_find(name, LabelArray):
     for i in range(len(LabelArray)):
@@ -30,11 +38,13 @@ class Find_label:
     def __init__(self, file, position):
         self.file = file
         self.position = position
+        self.line_pos = 0
         self.finshed = False
 
-    def set_position(self, position):
+    def set_position(self, position, line_pos):
         if position > self.position:
             self.position = position
+            self.line_pos = line_pos
 
     def run(self, name, LabelArray):
         if self.finshed:
@@ -43,6 +53,7 @@ class Find_label:
         file = self.file
         file.seek(self.position)
         while True:
+            self.line_pos += 1
             position = file.tell()
             line = file.readline()
             if line == "":
@@ -59,7 +70,7 @@ class Find_label:
                 label, line = line.split(" ", 1)
                 current = LabelArray_find(label, LabelArray)
                 if current == None:
-                    LabelArray.append(Label(label, position))
+                    LabelArray.append(Label(label, position, self.line_pos))
                     if label == name:
                         break
                 else:

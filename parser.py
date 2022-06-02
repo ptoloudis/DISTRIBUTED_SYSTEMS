@@ -1,5 +1,5 @@
 # File parser for SIMPLESCRIPT language
-
+import os
 from threading import Lock
 from multiprocessing import Process
 from var import *
@@ -35,6 +35,7 @@ class myList:
         for i in self.list:
             if i.id == id:
                 return i.get_pros()
+        return None
 
     def __del__(self):
         self.list = []
@@ -58,7 +59,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
+def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
     varArray = varArr
     LabelArray = LabelArr
 
@@ -70,7 +71,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
         try:
             temp, arg = arg.split(" ", 1)
         except:
-            temp = arg                  #@195.558.52.2:54254/1.1 v       @195.558.52.2:54253/1.1
+            temp = arg
             arg = ""
         if temp[0] == "\"":
             varArray.append(variables(tmp, "STRING", temp))
@@ -78,7 +79,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             varArray.append(variables(tmp, "INTEGER", int(temp)))
         args += 1
 
-    varArray.append(variables("$args", "INTEGER", args + 1 ))
+    varArray.append(variables("$args", "INTEGER", args + 1))
 
     try:
         file = open(file_name, "r")
@@ -93,8 +94,22 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
         file.close()
         exit(1)
 
+
+    line_pos = 1
     while True:
+        line_pos += 1
         position = file.tell()
+
+        if len(merger) > 0:
+            if merger[0] == id:
+                merger.append(file_name)
+                merger.append(file_size(file_name))
+                merger.append(position)
+                merger.append(varArray)
+                merger.append(LabelArray)
+                print("Merger")
+                return
+
         line = file.readline()
 
         if line == "":
@@ -114,21 +129,23 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
         if line[0] == "#":
             label, line = line.split(" ", 1)
             if LabelArray == []:
-                LabelArray.append(Label(label, position))
+                LabelArray.append(Label(label, position, line_pos))
             else:
                 current = LabelArray_find(label, LabelArray)
                 if current is None:
-                    LabelArray.append(Label(label, position))
+                    LabelArray.append(Label(label, position, line_pos))
                 else:
                     if current.position != position:
-                        eprint("Label "+label+" already exists")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Label "+label+" already exists")
                         file.close()
                         exit(1)
+
         try:
             operation, line = line.split(" ", 1)
         except:
             operation = line
             line = ""
+
 
         if operation == "SET":
             var, value = line.split(" ", 1)
@@ -155,9 +172,10 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                 elif value[0] != "\"" and var.type == "INTEGER":
                     var.value = int(value)
                 else:
-                    eprint("ERROR : Different type of values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Different type of values\n")
                     file.close()
                     exit(1)
+
 
         elif operation == "ADD":
             var, value, value2 = line.split(" ", 2)
@@ -167,21 +185,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     Val = variables(var, "INTEGER", 0)
                     varArray.append(Val)
                 elif Val.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
             else:
-                eprint("ERROR : Not valid type of variable\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Not valid type of variable\n")
                 file.close()
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -192,11 +210,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -215,20 +233,20 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     Val = variables(var, "INTEGER", 0)
                     varArray.append(Val)
                 elif Val.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
             else:
-                eprint("ERROR : Not valid type of variable\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Not valid type of variable\n")
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -239,11 +257,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -262,21 +280,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     Val = variables(var, "INTEGER", 0)
                     varArray.append(Val)
                 elif Val.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
             else:
-                eprint("ERROR : Not valid type of variable\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Not valid type of variable\n")
                 file.close()
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -287,11 +305,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -310,21 +328,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     Val = variables(var, "INTEGER", 0)
                     varArray.append(Val)
                 elif Val.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
             else:
-                eprint("ERROR : Not valid type of variable\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Not valid type of variable\n")
                 file.close()
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -335,11 +353,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -358,21 +376,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     Val = variables(var, "INTEGER", 0)
                     varArray.append(Val)
                 elif Val.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
             else:
-                eprint("ERROR : Not valid type of variable\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Not valid type of variable\n")
                 file.close()
                 exit(1)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -383,11 +401,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -397,16 +415,17 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
 
             Val.value = tmp % tmp2
 
+
         elif operation == "BGT":
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -417,11 +436,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -432,7 +451,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if tmp > tmp2:
                 Label1 = LabelArray_find(label, LabelArray)
                 if Label1 is None:
-                    Fd_label.set_position(position)
+                    Fd_label.set_position(position, line_pos)
                     result, LabelArray = Fd_label.run(label, LabelArray)
                     if result is None:
                         eprint("Label: " + label + " does not exist\n")
@@ -440,15 +459,17 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                         exit(1)
                     else:
                         if position == result.position:
-                            eprint("ERROR : Infinite loop\n")
+                            eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                             file.close()
                             exit(1)
                         file.seek(result.position, 0)
+                        line = result.line - 1
                 else:
                     if position == Label1.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
+                    line = result.line - 1
                     file.seek(Label1.position, 0)
 
 
@@ -457,11 +478,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -472,11 +493,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -487,7 +508,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if tmp >= tmp2:
                 Label1 = LabelArray_find(label, LabelArray)
                 if Label1 is None:
-                    Fd_label.set_position(position)
+                    Fd_label.set_position(position, line_pos)
                     result, LabelArray = Fd_label.run(label, LabelArray)
                     if result is None:
                         eprint("Label: " + label + " does not exist\n")
@@ -495,16 +516,18 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                         exit(1)
                     else:
                         if position == result.position:
-                            eprint("ERROR : Infinite loop\n")
+                            eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                             file.close()
                             exit(1)
                         file.seek(result.position, 0)
+                        line = result.line - 1
                 else:
                     if position == Label1.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
                     file.seek(Label1.position, 0)
+                    line = result.line - 1
 
 
         elif operation == "BLT":
@@ -512,11 +535,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -527,11 +550,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -542,7 +565,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if tmp < tmp2:
                 Label1 = LabelArray_find(label, LabelArray)
                 if Label1 is None:
-                    Fd_label.set_position(position)
+                    Fd_label.set_position(position, line_pos)
                     result, LabelArray = Fd_label.run(label, LabelArray)
                     if result is None:
                         eprint("Label: " + label + " does not exist\n")
@@ -550,27 +573,30 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                         exit(1)
                     else:
                         if position == result.position:
-                            eprint("ERROR : Infinite loop\n")
+                            eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
+                            line = result.line - 1
                             file.close()
                             exit(1)
                         file.seek(result.position, 0)
                 else:
                     if position == Label1.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
                     file.seek(Label1.position, 0)
+                    line = result.line - 1
+
 
         elif operation == "BLE":
             value, value2, label = line.split(" ", 2)
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -581,11 +607,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -596,7 +622,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if tmp <= tmp2:
                 Label1 = LabelArray_find(label, LabelArray)
                 if Label1 is None:
-                    Fd_label.set_position(position)
+                    Fd_label.set_position(position, line_pos)
                     result, LabelArray = Fd_label.run(label, LabelArray)
                     if result is None:
                         eprint("Label: " + label + " does not exist\n")
@@ -604,16 +630,18 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                         exit(1)
                     else:
                         if position == result.position:
-                            eprint("ERROR : Infinite loop\n")
+                            eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                             file.close()
                             exit(1)
                         file.seek(result.position, 0)
+                        line = result.line - 1
                 else:
                     if position == Label1.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
                     file.seek(Label1.position, 0)
+                    line = result.line - 1
 
 
         elif operation == "BEQ":
@@ -621,11 +649,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value[0] == "$":
                 Value = varArray_find(value, varArray)
                 if Value is None:
-                    eprint("Variable: " + value + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -636,11 +664,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if value2[0] == "$":
                 Value2 = varArray_find(value2)
                 if Value2 is None:
-                    eprint("Variable: " + value2 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + value2 + " does not exist\n")
                     file.close()
                     exit(1)
                 elif Value2.type != "INTEGER":
-                    eprint("ERROR : Cannot add string values\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot add string values\n")
                     file.close()
                     exit(1)
                 else:
@@ -651,7 +679,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if tmp == tmp2:
                 Label1 = LabelArray_find(label, LabelArray)
                 if Label1 is None:
-                    Fd_label.set_position(position)
+                    Fd_label.set_position(position, line_pos)
                     result, LabelArray = Fd_label.run(label, LabelArray)
                     if result is None:
                         eprint("Label: " + label + " does not exist\n")
@@ -659,23 +687,25 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                         exit(1)
                     else:
                         if position == result.position:
-                            eprint("ERROR : Infinite loop\n")
+                            eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                             file.close()
                             exit(1)
                         file.seek(result.position, 0)
+                        line = result.line - 1
                 else:
                     if position == Label1.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
                     file.seek(Label1.position, 0)
+                    line = result.line - 1
 
 
         elif operation == "BRA":
             label = line
             Label1 = LabelArray_find(label, LabelArray)
             if Label1 is None:
-                Fd_label.set_position(position)
+                Fd_label.set_position(position, line_pos)
                 result, LabelArray = Fd_label.run(label, LabelArray)
                 if result is None:
                     eprint("Label: " + label + " does not exist\n")
@@ -683,16 +713,19 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     exit(1)
                 else:
                     if position == result.position:
-                        eprint("ERROR : Infinite loop\n")
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                         file.close()
                         exit(1)
                     file.seek(result.position, 0)
+                    line = result.line - 1
             else:
                 if position == Label1.position:
-                    eprint("ERROR : Infinite loop\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Infinite loop\n")
                     file.close()
                     exit(1)
                 file.seek(Label1.position, 0)
+                line = result.line - 1
+
 
         elif operation == "SND":
             data = []
@@ -705,6 +738,11 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     exit(1)
                 else:
                     id2 = Value.value
+            if not isGroup(id, id2):
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
+                file.close()
+                exit(1)
+
             while True:
                 if value == "":
                     break
@@ -731,7 +769,8 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                 sleep(1)
             mtx.acquire()
             mtx.release()
-            
+
+
         elif operation == "RCV":
             var = []
             data = []
@@ -739,11 +778,17 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             if id1[0] == "$":
                 Value = varArray_find(id1, varArray)
                 if Value is None:
-                    eprint("Variable: " + id1 + " does not exist\n")
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + id1 + " does not exist\n")
                     file.close()
                     exit(1)
                 else:
                     id1 = Value.value
+
+            if not isGroup(id, id1):
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
+                file.close()
+                exit(1)
+
             while True:
                 if value == "":
                     break
@@ -774,11 +819,10 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
             var.clear()
 
 
-
         elif operation == "SLP":
             var = line
             if var[0] == "$" or var[0] == "\"":
-                eprint("Not int in SLP\n")
+                eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Not int in SLP\n")
                 file.close()
                 exit(1)
             sleep(int(var))
@@ -800,7 +844,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray):
                     if x is not None:
                         print(x.value, end=" ")
                     else:
-                        eprint("Not find " + var)
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + var + " does not exist\n")
+                        file.close()
+                        exit(1)
             print()
             sys.stdout.flush()
             mutex.release()
+
+
+
+def file_size(file):
+    size = os.stat(file)
+    return size.st_size
+
+def isGroup(id1, id2):
+    if id1.split(".")[:3] == id2.split(".")[:3]:
+       return True
+    else:
+        return False

@@ -1,17 +1,10 @@
-from random import randint
-import socket
+from multiprocessing.sharedctypes import Value
 
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 1))  # connect() for UDP doesn't send packets
-    return s.getsockname()[0]
 
-def get_free_port():
-    while True:
-        port = randint(3000, 5000 )
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if not (sock.connect_ex(('127.0.0.1', port)) == 0):
-            return port
+id = "192.168.2.1:8080/1.0"
+Value = 2
 
-Address = (get_ip(), get_free_port())
-print("Address: " + str(Address))
+tmp, tmp2 = id.split("/", 1)
+tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.__str__()
+id2 = tmp 
+print (id2)

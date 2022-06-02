@@ -67,7 +67,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
 
     args = 0
     while arg != "":
-        tmp = "$arg" + str(args+1)
+        tmp = "$argv" + str(args+1)
         try:
             temp, arg = arg.split(" ", 1)
         except:
@@ -161,16 +161,28 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
             if Var is None:
                 if value[0] == "\"":
                     var = variables(var, "STRING", value)
+                elif value[0] == "$":
+                    tmp = varArray_find(value, varArray)
+                    if tmp is None:
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Variable "+value+" not found")
+                        file.close()
+                        exit(1)
+                    var = variables(var, tmp.type, tmp.value)
                 else:
                     var = variables(var, "INTEGER", int(value))
-
                 varArray.append(var)
             else:
                 if value[0] == "\"" and var.type == "STRING":
-
                     var.value = value
-                elif value[0] != "\"" and var.type == "INTEGER":
-                    var.value = int(value)
+                elif value[0] == "$":
+                    tmp = varArray_find(value, varArray)
+                    if tmp is None:
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Variable "+value+" not found")
+                        file.close()
+                        exit(1)
+                    var = variables(var, tmp.type, tmp.value)
+                elif var.type == "INTEGER":
+                    var = variables(var, "INTEGER", int(value))
                 else:
                     eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Different type of values\n")
                     file.close()
@@ -724,7 +736,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                     file.close()
                     exit(1)
                 file.seek(Label1.position, 0)
-                line = result.line - 1
+                line = Label1.line - 1
 
 
         elif operation == "SND":
@@ -737,7 +749,8 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                     file.close()
                     exit(1)
                 else:
-                    id2 = Value.value
+                    tmp, tmp2 = id.split("/", 1)
+                    tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.value.__str__()
             if not isGroup(id, id2):
                 eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
                 file.close()
@@ -782,7 +795,12 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                     file.close()
                     exit(1)
                 else:
-                    id1 = Value.value
+                    tmp, tmp2 = id.split("/", 1)
+                    tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.value.__str__()
+                if not isGroup(id, id2):
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
+                    file.close()
+                    exit(1)
 
             if not isGroup(id, id1):
                 eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")

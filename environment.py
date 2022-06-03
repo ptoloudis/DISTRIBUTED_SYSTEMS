@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
+import socket
 
-from network import Network
+import network
+from network import *
 import parser
 import multiprocessing
 from threading import Thread
+import sys
 
 buffer = multiprocessing.Manager().list()
 merger = multiprocessing.Manager().list()
 group = 0
 
-list = parser.mylist
 
-net = Network(buffer, merger, list)
+net = Network(buffer, merger)
 
 Address = net.get_Address()
 s = net.get_socket()
@@ -19,7 +21,7 @@ s = net.get_socket()
 print("\033[35m Address: " + Address[0] +":"+ Address[1].__str__() + "\033[0m")
 print("\033[35m press help form manual \033[35m")
 
-rcv = multiprocessing.Process(target=net.rcv)
+rcv = Thread(target=net.rcv, args=())
 rcv.start()
 # send = multiprocessing.Process(target=net.send())
 # send.start()
@@ -53,26 +55,26 @@ while 1:
             tmp = Address[0] + ":" + Address[1].__str__()+"/" + group.__str__() + "." + id.__str__()
             id += 1
 
-            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer, merger))
+            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer, merger,0))
             pros.start()
-            parser.mylist.input(tmp, fileName, args, pros)
+            network.mylist.input(tmp, fileName, args, pros)
 
             if input1 == "":
                 break
 
     elif operation == "list":
         parser.mutex.acquire()
-        parser.mylist.__str__()
+        network.mylist.__str__()
         parser.mutex.release()
 
     elif operation == "kill":
         i = 0
         while True:
             if input1[0] == "/":
-                input1 = Address[0] + ":" + Address[1].__str__()+ input1
+                input1 = Address[0] + ":" + Address[1].__str__()+  input1
 
             kill = input1 + "." + i.__str__()
-            x = parser.mylist.get_pros(kill)
+            x = network.mylist.get_pros(kill)
             if x == None:
                 break
             else:
@@ -96,7 +98,7 @@ while 1:
             group_id = Address[0] + ":" + Address[1].__str__() + group_id
 
         thread = group_id + "." + thread_id
-        if parser.mylist.get_pros(thread) == None:
+        if  network.mylist.get_pros(thread) == None:
             print("\033[35m Process " + thread + " not found\033[0m\n")
             continue
 
@@ -115,43 +117,41 @@ while 1:
 
         print("\033[35m Migrating " + thread + " to " + ip_send + ":" + port_send.__str__() + "\033[0m\n")
 
-        s.connect((ip_send, port_send))
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((ip_send, port_send))
         try:
-            s.send("migrate".encode())
-            s.send((merger[0] + " " + merger[1] + " " + merger[2].__str__()) + " " + len(tmpA) + " " + len(tmpL))
-            s.send(tmpA)
-            s.send(tmpL)
+            client.send("migrate".encode())
+            client.send((merger[0] + " " + merger[1] + " " + merger[2].__str__() + " " + merger[3].__str__() + " " + len(tmpA).__str__() + " " + len(tmpL).__str__()).encode())
+            client.send(tmpA.encode())
+            client.send(tmpL.encode())
 
+            x = client.recv(1024).decode()
+            if x == "migrate_ok":
+                pass
             f = open(merger[1], "r")
             while True:
                 x = f.read(2048)
                 if x == "":
-                    s.send("End")
+                    client.send("End".encode())
                     break
-                s.send(x)
-            x = s.recv(2048)
-            if x == b"OK":
-                print("\033[35m Process " + thread + " migrated\033[0m\n")
-            else:
-                print("\033[35m Process " + thread + " not migrated\033[0m\n")
-            merger = []
-            parser.mylist.refresh()
+                client.send(x.encode())
+            print("\033[35m Process " + thread + " migrated\033[0m\n")
+            merger[:] = []
+            network.mylist.refresh()
         finally:
-            s.close()
+            client.close()
 
     elif operation == "exit":
         print("\033[35m The system closes.\033[0m\n")
-        exit(0)
+        break
 
     elif operation == "shutdown":
         print("\033[35m The system shuts down.\033[0m\n")
-        exit(0)
+        break
 
     else:
         print("\033[35m Unknown command.\033[0m\n")
 
     input("\033[35m Press Enter to continue...\033[0m\n")
 
-rcv.kill()
-send.kill()
-             
+sys.exit()

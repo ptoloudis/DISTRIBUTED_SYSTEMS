@@ -1,12 +1,18 @@
-import multiprocessing
-import struct
+
+from os.path import exists
 from random import randint
 import socket
-
+import struct
 import parser
 import var
+import multiprocessing
+import sys
 
 remote_process = []
+
+mylist = parser.myList()
+
+stop  = False
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -23,10 +29,9 @@ def get_free_port():
             return port
 
 class Network:
-    def __init__(self, buffer, merger, list):
+    def __init__(self, buffer, merger):
         self.buffer = buffer
         self.merger = merger
-        self.list = list
         Address = (get_ip(), get_free_port())
         self.Address = Address
         mysocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,59 +46,69 @@ class Network:
         return self.socket
 
     def rcv(self):
+        global mylist, remote_process
         s = self.socket
         s.listen()
-        list = self.list
         buffer = self.buffer
         merger = self.merger
         while True:
+            if stop:
+                break
             machine, addr = s.accept()
-            print("\033[35m Connection from: " + addr.__str__() + "\033[0m\n")
             tmp = machine.recv(2048)
 
             if tmp == b"migrate":
 
                 tmp = machine.recv(2048).decode()
-                thread_id, fileName, size, size_var, size_label = tmp.split(" ")
+                thread_id, fileName, size, position, size_var, size_label = tmp.split(" ")
                 size = int(size)
+                position = int(position)
                 size_var = int(size_var)
                 size_label = int(size_label)
 
                 tmp = machine.recv(size_var).decode()
                 varA = []
-                while tmp == "":
-                    try:
-                        name, type, value, tmp = tmp.split(" ", 3)
-                    except:
-                        name, type, value = tmp.split(" ", 2)
-                        tmp = ""
-                    if type == "INTEGER":
-                        varA.append(var.Variable(name, type, int(value)))
-                    elif type == "STRING":
-                        varA.append(var.Variable(name, type, value))
+                if size_var != 0:
+                    while tmp == "":
+                        try:
+                            name, type, value, tmp = tmp.split(" ", 3)
+                        except:
+                            name, type, value = tmp.split(" ", 2)
+                            tmp = ""
+                        if type == "INTEGER":
+                            varA.append(var.Variable(name, type, int(value)))
+                        elif type == "STRING":
+                            varA.append(var.Variable(name, type, value))
 
                 tmp = machine.recv(size_label).decode()
                 varL = []
-                while tmp == "":
-                    try:
-                        name, pos, line, tmp = tmp.split(" ", 3)
-                    except:
-                        name, pos, line = tmp.split(" ", 2)
-                        tmp = ""
-                    varL.append(var.Label(name, int(pos), int(line)))
+                pos = 0
+                if size_label != 0:
+                    while tmp == "":
+                        try:
+                            name, pos, line, tmp = tmp.split(" ", 3)
+                        except:
+                            name, pos, line = tmp.split(" ", 2)
+                            tmp = ""
+                        varL.append(var.Label(name, int(pos), int(line)))
 
+                if exists(fileName):
+                    tmp = fileName
+                    while exists(tmp):
+                        tmp = fileName + "_" + str(randint(0, 400))
+                    fileName = tmp
+                machine.send(b"migrate_ok")
                 f = open(fileName, "w")
                 while True:
                     x = machine.recv(2048)
-                    if x == "End":
+                    if x.decode() == "End":
                         break
                     f.write(x.decode())
-                f.truncate(size)
                 f.close()
-                s.sendall(b"OK")
-                pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id, 0, varA, varL, buffer, merger))
+                pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id, "", varA, varL, buffer, merger, position))
                 pros.start()
-                list.input(tmp, fileName, " ", pros)
+                mylist.input(thread_id, fileName, "", pros)
+                print(mylist.__str__())
 
             elif tmp == b"message_pros_send":
                 tmp = machine.recv(2048).decode()
@@ -112,7 +127,8 @@ class Network:
                 self.i_have = addr
 
 
-    def send(self):
+    def send(self, list):
+        global remote_process
         while True:
             for i in range(len(self.buffer)):
                 id1 = self.buffer[i].get_id1()
@@ -124,10 +140,11 @@ class Network:
                     while self.i_have == None:
                         pass
                     addr = self.i_have
-                    self.socket.connect(addr)
-                    self.socket.sendall(b"message_pros_send")
-                    self.socket.sendall(self.buffer[i].get_message().encode())
-                    self.socket.close()
+                    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    client.connect(addr)
+                    client.socket.sendall(b"message_pros_send")
+                    client.socket.sendall(self.buffer[i].get_message().encode())
+                    client.ocket.close()
 
                 elif list.get_pos(id2) == None:
                     self.i_have = None

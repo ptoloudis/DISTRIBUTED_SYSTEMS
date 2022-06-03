@@ -1,5 +1,9 @@
 #SIMPLESCRIPT
 
-SND 1.1 1
+PRN "Hello World"
+SLP 50
+
+PRN "Hello World"
+SLP 50
 
 RET

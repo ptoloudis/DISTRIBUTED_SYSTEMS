@@ -8,7 +8,6 @@ from time import sleep
 import re
 import sys
 
-
 mtx = Lock()
 mutex = Lock()
 
@@ -47,8 +46,6 @@ class myList:
     def __del__(self):
         self.list = []
 
-mylist = myList()
-
 class process:
     def __init__(self, id, program_name, args, pros: Process):
         self.id = id
@@ -66,7 +63,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
+def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
     varArray = varArr
     LabelArray = LabelArr
 
@@ -95,7 +92,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
     try:
         file = open(file_name, "r")
     except:
-        eprint("File not found")
+        eprint("File " + file_name + " not found")
         return
 
     Fd_label: Find_label = Find_label(file, 0)
@@ -105,7 +102,8 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
         file.close()
         exit(1)
 
-
+    if pos != 0:
+        file.seek(pos)
     line_pos = 1
     while True:
         line_pos += 1
@@ -118,7 +116,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                 merger.append(position)
                 merger.append(varArray)
                 merger.append(LabelArray)
-                print("Merger")
+                file.close()
                 return
 
         line = file.readline()

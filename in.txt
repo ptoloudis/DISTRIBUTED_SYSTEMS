@@ -1,3 +1,8 @@
 #SIMPLESCRIPT
 
-PRN $a
+PRN "Hello World"
+SLP 50
+
+PRN "Hello World"
+SLP 50
+

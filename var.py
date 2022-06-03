@@ -1,5 +1,6 @@
 from re import sub
 from time import sleep
+
 class variables:
     def __init__(self, name, type, value):
         self.name = name

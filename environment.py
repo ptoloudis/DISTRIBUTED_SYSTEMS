@@ -1,86 +1,28 @@
 #!/usr/bin/env python3
-import socket
-from random import randint
-import var
+
+from network import Network
 import parser
 import multiprocessing
 from threading import Thread
-
-# find the my ip address
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(('8.8.8.8', 1))  # connect() for UDP doesn't send packets
-    return s.getsockname()[0]
-
-# find a free port
-def get_free_port():
-    while True:
-        port = randint(3000, 5000)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if not (sock.connect_ex(('127.0.0.1', port)) == 0):
-            return port
-
-def migrate_rcv(s:socket.socket,list):
-    s.listen()
-    while True:
-        machine, addr = s.accept()
-        
-        tmp = machine.recv(2048)
-        thread_id, fileName, size, size_var, size_label = tmp.split(" ")
-        size = int(size)
-        size_var = int(size_var)
-        size_label = int(size_label)
-        tmp = machine.recv(size_var)
-        varA = []
-        while tmp == "":
-            try:
-                name, type, value, tmp = tmp.split(" ", 3)
-            except:
-                name, type, value = tmp.split(" ", 2)
-                tmp = ""
-            if type == "INTEGER":
-                varA.append(var.Variable(name, type, int(value)))
-            elif type == "STRING":
-                varA.append(var.Variable(name, type, value))
-        
-        tmp = machine.recv(size_label)
-        varL = []
-        while tmp == "":
-            try:
-                name, pos, line, tmp = tmp.split(" ", 3)
-            except:
-                name, pos, line = tmp.split(" ", 2)
-                tmp = ""
-            varL.append(var.Label(name, int(pos), int(line))) 
-        
-        f = open(fileName, "w")
-        while True:
-            x = machine.recv(2048)
-            if x == b"End":
-                break
-            f.write(x.decode())
-        f.close()
-        s.sendall(b"OK")
-        pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id , 0, varA, varL, buffer, merger))
-        pros.start()
-        parser.mylist.input(tmp, fileName, args, pros)
-
-
-# MAIN
 
 buffer = multiprocessing.Manager().list()
 merger = multiprocessing.Manager().list()
 group = 0
 
+list = parser.mylist
 
-Address = (get_ip(), get_free_port())
+net = Network(buffer, merger, list)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM).bind(Address)
+Address = net.get_Address()
+s = net.get_socket()
 
-print("\033[35m Address: " + Address[0] + ":" + str(Address[1]) + "\033[0m")
+print("\033[35m Address: " + Address[0] +":"+ Address[1].__str__() + "\033[0m")
 print("\033[35m press help form manual \033[35m")
 
-Thread(target=migrate_rcv, args=(s,buffer)).start()
+rcv = multiprocessing.Process(target=net.rcv)
+rcv.start()
+# send = multiprocessing.Process(target=net.send())
+# send.start()
 
 while 1:
     input1 = input("\033[35m Enter the command: \033[0m")
@@ -93,7 +35,7 @@ while 1:
     except:
         operation = input1
         input1 = ""
-    
+
     if operation == "run":
         group += 1
         id = 0
@@ -110,7 +52,7 @@ while 1:
                 args = ""
             tmp = Address[0] + ":" + Address[1].__str__()+"/" + group.__str__() + "." + id.__str__()
             id += 1
-            
+
             pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer, merger))
             pros.start()
             parser.mylist.input(tmp, fileName, args, pros)
@@ -140,7 +82,6 @@ while 1:
             i += 1
 
     elif operation == "migrate":
-
         try:
             group_id, input1 = input1.split(" ", 1)
             thread_id, input1 = input1.split(" ", 1)
@@ -163,34 +104,40 @@ while 1:
         while len(merger) != 5:
             pass
 
-        tmpA = "" 
+        tmpA = ""
         for i in range(len(merger[4])):
             tmpA += merger[4][i].__str__() + " "
 
         tmpL = ""
         for i in range(len(merger[5])):
             tmpL += merger[5][i].__str__() + " "
-        
+
+
+        print("\033[35m Migrating " + thread + " to " + ip_send + ":" + port_send.__str__() + "\033[0m\n")
 
         s.connect((ip_send, port_send))
-        s.sendall((merger[0] + " " + merger[1] + " " + merger[2].__str__()) + " " + len(tmpA) + " " + len(tmpL))
-        s.sendall(tmpA)
-        s.sendall(tmpL)       
+        try:
+            s.send("migrate".encode())
+            s.send((merger[0] + " " + merger[1] + " " + merger[2].__str__()) + " " + len(tmpA) + " " + len(tmpL))
+            s.send(tmpA)
+            s.send(tmpL)
 
-        f = open(merger[1], "r")
-        while True:
-            x = f.read(2048)
-            if x == "":
-                s.sendall("End")
-                break
-            s.sendall(x)
-        x = s.recv(2048)
-        if x == b"OK":
-            print("\033[35m Process " + thread + " migrated\033[0m\n")
-        else:
-            print("\033[35m Process " + thread + " not migrated\033[0m\n")
-        merger = []
-
+            f = open(merger[1], "r")
+            while True:
+                x = f.read(2048)
+                if x == "":
+                    s.send("End")
+                    break
+                s.send(x)
+            x = s.recv(2048)
+            if x == b"OK":
+                print("\033[35m Process " + thread + " migrated\033[0m\n")
+            else:
+                print("\033[35m Process " + thread + " not migrated\033[0m\n")
+            merger = []
+            parser.mylist.refresh()
+        finally:
+            s.close()
 
     elif operation == "exit":
         print("\033[35m The system closes.\033[0m\n")
@@ -205,5 +152,6 @@ while 1:
 
     input("\033[35m Press Enter to continue...\033[0m\n")
 
-
+rcv.kill()
+send.kill()
              

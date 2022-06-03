@@ -15,6 +15,7 @@ mutex = Lock()
 class myList:
     def __init__(self):
         self.list = []
+
     def input(self, id, name, args, pros):
         for i in self.list:
             z = i.get_pros()
@@ -36,6 +37,12 @@ class myList:
             if i.id == id:
                 return i.get_pros()
         return None
+
+    def refresh(self):
+        for i in self.list:
+            z = i.get_pros()
+            if not z.is_alive():
+                self.list.remove(i)
 
     def __del__(self):
         self.list = []
@@ -63,17 +70,21 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
     varArray = varArr
     LabelArray = LabelArr
 
-    varArray.append(variables("$arg0", "STRING", file_name))
+    varArray.append(variables("$argv0", "STRING", file_name))
 
     args = 0
     while arg != "":
-        tmp = "$argv" + str(args+1)
+        tmp = "$argv" + str(args + 1)
         try:
             temp, arg = arg.split(" ", 1)
         except:
             temp = arg
             arg = ""
+
         if temp[0] == "\"":
+            x, arg = arg.split("\"")
+            temp = temp + " " + x + "\""
+            arg = arg[1:]
             varArray.append(variables(tmp, "STRING", temp))
         else:
             varArray.append(variables(tmp, "INTEGER", int(temp)))
@@ -113,15 +124,16 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
         line = file.readline()
 
         if line == "":
-            print("File Finished")
+            print("#", id, ": File Finished")
             break
+
         line = line.strip()
 
         if line == "":
             continue
 
         if line == "RET":
-            print("RETURN")
+            print("#", id, ": RETURN")
             break
             
         line = re.sub("\s+", " ", line)
@@ -151,38 +163,53 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
             var, value = line.split(" ", 1)
             if len(varArray) == 0:
                 if value[0] == "\"":
-                    var = variables(var, "STRING", value)
+                    x, arg = arg.split("\"")
+                    temp = value + " " + x + "\""
+                    arg = arg[1:]
+                    varArray.append(variables(var, "STRING", temp))
+                else:
+                    var = variables(var, "INTEGER", int(value))
+                varArray.append(var)
+                continue
+
+            Var = varArray_find(var, varArray)
+            if Var is None:
+                if value[0] == "\"":
+                    x, arg = arg.split("\"")
+                    temp = value + " " + x + "\""
+                    arg = arg[1:]
+                    varArray.append(variables(var, "STRING", temp))
+
+                elif value[0] == "$":
+                    tmp = varArray_find(value, varArray)
+                    if tmp is None:
+                        eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Variable "+value+" not found")
+                        file.close()
+                        exit(1)
+                    var = variables(var, tmp.type, tmp.value)
+
                 else:
                     var = variables(var, "INTEGER", int(value))
 
                 varArray.append(var)
-                continue
-            Var = varArray_find(var, varArray)
-            if Var is None:
-                if value[0] == "\"":
-                    var = variables(var, "STRING", value)
-                elif value[0] == "$":
-                    tmp = varArray_find(value, varArray)
-                    if tmp is None:
-                        eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Variable "+value+" not found")
-                        file.close()
-                        exit(1)
-                    var = variables(var, tmp.type, tmp.value)
-                else:
-                    var = variables(var, "INTEGER", int(value))
-                varArray.append(var)
             else:
                 if value[0] == "\"" and var.type == "STRING":
-                    var.value = value
+                    x, arg = arg.split("\"")
+                    temp = value + " " + x + "\""
+                    arg = arg[1:]
+                    varArray.append(variables(var, "STRING", temp))
+
                 elif value[0] == "$":
                     tmp = varArray_find(value, varArray)
                     if tmp is None:
                         eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Variable "+value+" not found")
                         file.close()
                         exit(1)
-                    var = variables(var, tmp.type, tmp.value)
+                    variables(var, tmp.type, tmp.value)
+
                 elif var.type == "INTEGER":
-                    var = variables(var, "INTEGER", int(value))
+                    variables(var, "INTEGER", int(value))
+
                 else:
                     eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Different type of values\n")
                     file.close()
@@ -751,6 +778,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                 else:
                     tmp, tmp2 = id.split("/", 1)
                     tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.value.__str__()
+                    id2 = tmp
             if not isGroup(id, id2):
                 eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
                 file.close()
@@ -797,7 +825,8 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
                 else:
                     tmp, tmp2 = id.split("/", 1)
                     tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.value.__str__()
-                if not isGroup(id, id2):
+                    id1 = tmp
+                if not isGroup(id1, id):
                     eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
                     file.close()
                     exit(1)
@@ -829,7 +858,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
             data2 = list(data2[0])
             for i in range(len(data2)):
                 if data[i] is None:
-                    if data2[i] == "\"":
+                    if data2[i][0] == "\"":
                         varx = variables(var[i], "STRING", data2[i])
                     else:
                         varx = variables(var[i], "INTEGER", int(data2[i]))
@@ -839,7 +868,16 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
 
         elif operation == "SLP":
             var = line
-            if var[0] == "$" or var[0] == "\"":
+            if var[0] == "$":
+                Value = varArray_find(var, varArray)
+                if Value is None:
+                    eprint("ERROR id " + id + " line " + line_pos.__str__() + " Variable: " + var + " does not exist\n")
+                    file.close()
+                    exit(1)
+                else:
+                    var = Value.value
+
+            elif var[0] == "\"":
                 eprint("ERROR id " + id + " line " + line_pos.__str__() + ": Not int in SLP\n")
                 file.close()
                 exit(1)
@@ -869,6 +907,9 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger):
             sys.stdout.flush()
             mutex.release()
 
+        elif operation == "RET":
+            print("#", id, ": RETURN")
+            break
 
 
 def file_size(file):

@@ -1,10 +1,21 @@
 from multiprocessing.sharedctypes import Value
 
+arg = '1 3 "hello there" 5'
 
-id = "192.168.2.1:8080/1.0"
-Value = 2
+args = 0
+while arg != "":
+    tmp = "$argv" + str(args + 1)
+    try:
+        temp, arg = arg.split(" ", 1)
+    except:
+        temp = arg
+        arg = ""
 
-tmp, tmp2 = id.split("/", 1)
-tmp = tmp + "/" + tmp2.split(".")[0] + "." + Value.__str__()
-id2 = tmp 
-print (id2)
+    if temp[0] == "\"":
+        x, arg = arg.split("\"")
+        temp = temp + " " + x + "\""
+        arg = arg[1:]
+        print(temp+"str")
+    else:
+        print(temp+"int")
+    args += 1

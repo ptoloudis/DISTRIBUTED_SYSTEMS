@@ -26,7 +26,7 @@ class Label:
         self.line = line
 
     def __str__(self):
-        return self.name + " " + self.position.__str__()
+        return self.name + " " + self.position.__str__() + " " + self.line.__str__()
 
 def LabelArray_find(name, LabelArray):
     for i in range(len(LabelArray)):

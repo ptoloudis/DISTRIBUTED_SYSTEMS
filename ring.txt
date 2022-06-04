@@ -24,7 +24,7 @@
      
      SUB $cnt $cnt 1
      BEQ $cnt 0 #L2
-     
+
      BRA #L1
 
 #L2  RET

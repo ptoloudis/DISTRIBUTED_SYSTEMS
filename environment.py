@@ -11,20 +11,29 @@ import sys
 buffer = multiprocessing.Manager().list()
 merger = multiprocessing.Manager().list()
 group = 0
-
-
 net = Network(buffer, merger)
-
 Address = net.get_Address()
 s = net.get_socket()
+
+def start():
+    global net
+    rcv = Thread(target=net.rcv, args=())
+    rcv.start()
+    # send = Thread(target=net.send, args=())
+    # send.start()
+    # # multi = Thread(target=multicast_rcv(), args=())
+    # # multi.start()
+    # rcv.join()
+    # send.join()
+    # multi.join()
+
+
 
 print("\033[35m Address: " + Address[0] +":"+ Address[1].__str__() + "\033[0m")
 print("\033[35m press help form manual \033[35m")
 
-rcv = Thread(target=net.rcv, args=())
-rcv.start()
-# send = multiprocessing.Process(target=net.send())
-# send.start()
+sta = Thread(target=start(), args=())
+sta.start()
 
 while 1:
     input1 = input("\033[35m Enter the command: \033[0m")

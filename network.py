@@ -3,6 +3,8 @@ from os.path import exists
 from random import randint
 import socket
 import struct
+from threading import Thread
+
 import parser
 import var
 import multiprocessing
@@ -126,15 +128,14 @@ class Network:
             elif tmp == b"I_have":
                 self.i_have = addr
 
-
-    def send(self, list):
-        global remote_process
+    def send(self):
+        global mylist, remote_process
         while True:
             for i in range(len(self.buffer)):
                 id1 = self.buffer[i].get_id1()
                 id2 = self.buffer[i].get_id2()
                 pos = self.buffer[i].get_position()
-                if list.get_pos(id1) == None:
+                if mylist.get_pos(id1) == None:
                     self.i_have = None
                     multicast_send(id1, Address=self.Address)
                     while self.i_have == None:
@@ -172,22 +173,30 @@ def multicast_send(self, message, Address):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
     message = message + " " + str(Address[0]) + " " + str(Address[1])
-    s.sendto(message.encode())
+    s.sendto(message.encode(), ('239.192.1.100', 50000))
 
 
-def multicast_rcv(list, s):
+def multicast_rcv():
+    global mylist
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('239.192.1.100', 50000))
     mreq = struct.pack("=4sl", socket.inet_aton("224.51.105.104"), socket.INADDR_ANY)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
     while True:
-        tmp = sock.recv(2048)
+        sock.settimeout(1)
+        try:
+            tmp = sock.recv(2048)
+            sock.settimeout(None)
+        except:
+            continue
         tmp, addr, port = tmp.decode().split(" ")
-        if list.get_pos(tmp.decode()) != None:
-            s.connect((addr, int(port)))
-            s.sendall(b"I_have")
-            s.close()
+        if mylist.get_pos(tmp.decode()) != None:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client.connect((addr, int(port)))
+            client.sendall(b"I_have")
+            client.close()
+
 
 
 

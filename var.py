@@ -1,5 +1,8 @@
 from re import sub
 from time import sleep
+from threading import Lock
+
+mutex = Lock()
 
 class variables:
     def __init__(self, name, type, value):
@@ -105,15 +108,22 @@ class Buffer:
         self.finished = True
 
 def BufferArray_find_pos(pos, BufferArray):
+    global mutex
+    mutex.acquire()
     for i in range(len(BufferArray)):
         if BufferArray[i].position == pos:
+            mutex.release()
             return False
+    mutex.release()
     return True
 
 def BufferArray_find(id1, id2, *data, BufferArray):
+    global mutex
+
     while True:
         for i in range(len(BufferArray)):
             k = 0
+            mutex.acquire()
             if BufferArray[i].id1 == id1 and BufferArray[i].id2 == id2:
                 for j in range(len(BufferArray[i].msg)):
                     if BufferArray[i].msg[j] == data[j] or data[j][0] == None:
@@ -121,5 +131,7 @@ def BufferArray_find(id1, id2, *data, BufferArray):
                         if k == len(BufferArray[i].msg):
                             msg = BufferArray[i].msg
                             BufferArray.pop(i)
+                            mutex.release()
                             return msg
+            mutex.release()
         sleep(2)

@@ -87,7 +87,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
             varArray.append(variables(tmp, "INTEGER", int(temp)))
         args += 1
 
-    varArray.append(variables("$args", "INTEGER", args + 1))
+    varArray.append(variables("$args", "INTEGER", int(args + 1)))
 
     try:
         file = open(file_name, "r")
@@ -242,7 +242,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                 else:
                     tmp = int(Value.value)
             else:
-                tmp = value
+                tmp = int(value)
 
             if value2[0] == "$":
                 Value2 = varArray_find(value2, varArray)
@@ -255,9 +255,9 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
-                tmp2 = value2
+                tmp2 = int(value2)
 
             Val.value = tmp + tmp2
 
@@ -287,7 +287,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -302,7 +302,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -335,7 +335,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -350,7 +350,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -383,7 +383,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -398,7 +398,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -431,7 +431,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -446,7 +446,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -466,7 +466,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -481,7 +481,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -523,7 +523,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -538,7 +538,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -580,7 +580,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -595,7 +595,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -637,7 +637,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -652,7 +652,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -694,7 +694,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp = Value.value
+                    tmp = int(Value.value)
             else:
                 tmp = int(value)
 
@@ -709,7 +709,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
                 else:
-                    tmp2 = Value2.value
+                    tmp2 = int(Value2.value)
             else:
                 tmp2 = int(value2)
 
@@ -798,9 +798,10 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                         exit(1)
                     else:
                         tmp_data = Value.value
-                data.append(tmp_data)
+                data.append(tmp_data.__str__())
             mtx.acquire()
-            z = Buffer(id, id2, tuple(data))
+            id1 = id
+            z = Buffer(id1, id2, tuple(data))
             BufferArray.append(z)
             pos = z.get_position()
             mtx.release()
@@ -812,6 +813,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
 
         elif operation == "RCV":
             var = []
+            rep = []
             data = []
             id1, value = line.split(" ", 1)
             if id1[0] == "$":
@@ -829,11 +831,6 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                     file.close()
                     exit(1)
 
-            if not isGroup(id, id1):
-                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Cannot send to different group\n")
-                file.close()
-                exit(1)
-
             while True:
                 if value == "":
                     break
@@ -848,7 +845,9 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                         var.append(tmp_data)
                         tmp_data = None
                     else:
-                        tmp_data = Value.value
+                        var.append(tmp_data)
+                        rep.append(tmp_data)
+                        tmp_data = None
                 data.append(tmp_data)
             data = tuple(data)
             id2 = id
@@ -856,11 +855,22 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
             data2 = list(data2[0])
             for i in range(len(data2)):
                 if data[i] is None:
-                    if data2[i][0] == "\"":
+                    for j in range(len(rep)):
+                        if var[i] == rep[j]:
+                            Value = varArray_find(var[i], varArray)
+                            if Value is None:
+                                eprint("ERROR id " + id + " line " + line_pos.__str__() + " : Variable: " + var[i] + " does not exist\n")
+                                file.close()
+                                exit(1)
+                            else:
+                                Value.value = data2[i]
+                                continue
+                    if data2[i][0] == '\"':
                         varx = variables(var[i], "STRING", data2[i])
                     else:
                         varx = variables(var[i], "INTEGER", int(data2[i]))
                     varArray.append(varx)
+
             var.clear()
 
 

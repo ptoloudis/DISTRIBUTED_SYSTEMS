@@ -17,12 +17,12 @@ s = net.get_socket()
 
 def start():
     global net
+    send = Thread(target=net.send, args=())
+    send.start()
+    multi = Thread(target=net.multicast_rcv, args=())
+    multi.start()
     rcv = Thread(target=net.rcv, args=())
     rcv.start()
-    # send = Thread(target=net.send, args=())
-    # send.start()
-    # # multi = Thread(target=multicast_rcv(), args=())
-    # # multi.start()
     # rcv.join()
     # send.join()
     # multi.join()
@@ -64,7 +64,7 @@ while 1:
             tmp = Address[0] + ":" + Address[1].__str__()+"/" + group.__str__() + "." + id.__str__()
             id += 1
 
-            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer, merger,0))
+            pros = multiprocessing.Process(target=parser.parse, args=(fileName, tmp, args, [], [], buffer, merger, 0, 0))
             pros.start()
             network.mylist.input(tmp, fileName, args, pros)
 
@@ -116,11 +116,11 @@ while 1:
             pass
 
         tmpA = ""
-        for i in range(len(merger[4])):
+        for i in range(len(merger[4])-1):
             tmpA += merger[4][i].__str__() + " "
 
         tmpL = ""
-        for i in range(len(merger[5])):
+        for i in range(len(merger[5])-1):
             tmpL += merger[5][i].__str__() + " "
 
 
@@ -130,7 +130,7 @@ while 1:
         client.connect((ip_send, port_send))
         try:
             client.send("migrate".encode())
-            client.send((merger[0] + " " + merger[1] + " " + merger[2].__str__() + " " + merger[3].__str__() + " " + len(tmpA).__str__() + " " + len(tmpL).__str__()).encode())
+            client.send((merger[0] + " " + merger[1] + " " + merger[2].__str__() + " " + merger[3].__str__() + " " + merger[6].__str__() + " " + len(tmpA).__str__() + " " + len(tmpL).__str__()).encode())
             client.send(tmpA.encode())
             client.send(tmpL.encode())
 

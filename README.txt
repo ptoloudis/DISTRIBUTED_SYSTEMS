@@ -22,7 +22,7 @@ receiver.txt
 * This is repeated <cnt> times 
 
 Example
-run sender.txt 1 3 "hello there" 5 || receiver.txt 0 3
+run sender.txt 1 3 "hello there" 20 || receiver.txt 0 3
 
 3)
 ring.txt

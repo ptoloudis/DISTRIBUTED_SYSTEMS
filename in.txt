@@ -1,9 +1,11 @@
 #SIMPLESCRIPT
 
-PRN "Hello World"
+SET $a "Hello World"
+
+PRN $a
 SLP 50
 
-PRN "Hello World"
+PRN $a
 SLP 50
 
 RET

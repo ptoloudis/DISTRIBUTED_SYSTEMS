@@ -1,4 +1,4 @@
-
+import time
 from os.path import exists
 from random import randint
 import socket
@@ -62,31 +62,44 @@ class Network:
             if tmp == b"migrate":
 
                 tmp = machine.recv(2048).decode()
-                thread_id, fileName, size, position, size_var, size_label = tmp.split(" ")
+                thread_id, fileName, size, position, line, size_var, size_label = tmp.split(" ")
                 size = int(size)
                 position = int(position)
                 size_var = int(size_var)
                 size_label = int(size_label)
 
+                time.sleep(0.5)
                 tmp = machine.recv(size_var).decode()
                 varA = []
                 if size_var != 0:
-                    while tmp == "":
+                    while tmp != "":
                         try:
                             name, type, value, tmp = tmp.split(" ", 3)
                         except:
                             name, type, value = tmp.split(" ", 2)
                             tmp = ""
+
                         if type == "INTEGER":
-                            varA.append(var.Variable(name, type, int(value)))
+                            varA.append(var.variables(name, type, int(value)))
                         elif type == "STRING":
-                            varA.append(var.Variable(name, type, value))
+                            try:
+                                if name == "$argv0":
+                                    varA.append(var.variables(name, type, value))
+                                    continue
+                                x, tmp = tmp.split("\"")
+                                x = value + " " + x + "\""
+                                tmp = tmp[1:]
+                            except:
+                                x = tmp
+                                tmp = ""
+                            value += x
+                            varA.append(var.variables(name, type, value))
 
                 tmp = machine.recv(size_label).decode()
                 varL = []
                 pos = 0
                 if size_label != 0:
-                    while tmp == "":
+                    while tmp != "":
                         try:
                             name, pos, line, tmp = tmp.split(" ", 3)
                         except:
@@ -107,7 +120,7 @@ class Network:
                         break
                     f.write(x.decode())
                 f.close()
-                pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id, "", varA, varL, buffer, merger, position))
+                pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id, "", varA, varL, buffer, merger, position, int(line)))
                 pros.start()
                 mylist.input(thread_id, fileName, "", pros)
                 print(mylist.__str__())
@@ -131,11 +144,12 @@ class Network:
     def send(self):
         global mylist, remote_process
         while True:
+            var.mutex.acquire()
             for i in range(len(self.buffer)):
-                id1 = self.buffer[i].get_id1()
-                id2 = self.buffer[i].get_id2()
+                id1 = self.buffer[i].id1
+                id2 = self.buffer[i].id2
                 pos = self.buffer[i].get_position()
-                if mylist.get_pos(id1) == None:
+                if mylist.get_pros(id1) == None:
                     self.i_have = None
                     multicast_send(id1, Address=self.Address)
                     while self.i_have == None:
@@ -147,7 +161,7 @@ class Network:
                     client.socket.sendall(self.buffer[i].get_message().encode())
                     client.ocket.close()
 
-                elif list.get_pos(id2) == None:
+                elif mylist.get_pros(id2) == None:
                     self.i_have = None
                     multicast_send(id2, Address=self.Address)
                     while self.i_have == None:
@@ -168,34 +182,38 @@ class Network:
                             self.socket.sendall(x.encode())
                             self.socket.close()
                             remote_process.pop(j)
+            var.mutex.release()
+            time.sleep(5)
 
-def multicast_send(self, message, Address):
+    def multicast_rcv(self):
+        global mylist
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('239.192.1.100', 50000))
+        mreq = struct.pack("=4sl", socket.inet_aton("224.51.105.104"), socket.INADDR_ANY)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        while True:
+            sock.settimeout(1)
+            try:
+                tmp = sock.recv(2048)
+                sock.settimeout(None)
+            except:
+                continue
+            tmp, addr, port = tmp.decode().split(" ")
+            if mylist.get_pos(tmp.decode()) != None:
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.connect((addr, int(port)))
+                client.sendall(b"I_have")
+                client.close()
+
+def multicast_send( message, Address):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
     message = message + " " + str(Address[0]) + " " + str(Address[1])
     s.sendto(message.encode(), ('239.192.1.100', 50000))
 
 
-def multicast_rcv():
-    global mylist
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('239.192.1.100', 50000))
-    mreq = struct.pack("=4sl", socket.inet_aton("224.51.105.104"), socket.INADDR_ANY)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-    while True:
-        sock.settimeout(1)
-        try:
-            tmp = sock.recv(2048)
-            sock.settimeout(None)
-        except:
-            continue
-        tmp, addr, port = tmp.decode().split(" ")
-        if mylist.get_pos(tmp.decode()) != None:
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.connect((addr, int(port)))
-            client.sendall(b"I_have")
-            client.close()
+
 
 
 

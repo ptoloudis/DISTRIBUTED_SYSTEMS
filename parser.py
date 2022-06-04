@@ -63,7 +63,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     sys.stderr.flush()
 
-def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
+def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos, line_pos):
     varArray = varArr
     LabelArray = LabelArr
 
@@ -104,7 +104,8 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
 
     if pos != 0:
         file.seek(pos)
-    line_pos = 1
+    else:
+        line_pos += 1
     while True:
         line_pos += 1
         position = file.tell()
@@ -116,6 +117,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
                 merger.append(position)
                 merger.append(varArray)
                 merger.append(LabelArray)
+                merger.append(line_pos)
                 file.close()
                 return
 
@@ -161,10 +163,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
             var, value = line.split(" ", 1)
             if len(varArray) == 0:
                 if value[0] == "\"":
-                    x, arg = arg.split("\"")
-                    temp = value + " " + x + "\""
-                    arg = arg[1:]
-                    varArray.append(variables(var, "STRING", temp))
+                    varArray.append(variables(var, "STRING", value))
                 else:
                     var = variables(var, "INTEGER", int(value))
                 varArray.append(var)
@@ -173,10 +172,7 @@ def parse(file_name, id, arg, varArr, LabelArr, BufferArray, merger, pos):
             Var = varArray_find(var, varArray)
             if Var is None:
                 if value[0] == "\"":
-                    x, arg = arg.split("\"")
-                    temp = value + " " + x + "\""
-                    arg = arg[1:]
-                    varArray.append(variables(var, "STRING", temp))
+                    varArray.append(variables(var, "STRING", value))
 
                 elif value[0] == "$":
                     tmp = varArray_find(value, varArray)

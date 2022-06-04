@@ -6,6 +6,7 @@
      BLT $cnt 1 #L1
 
      PRN "receiving from " $tid
+     SLP 15
      RCV $tid $msg
      PRN "received " $msg
      SUB $cnt $cnt 1

@@ -3,12 +3,14 @@ from os.path import exists
 from random import randint
 import socket
 import struct
-from threading import Thread
-
 import parser
 import var
 import multiprocessing
-import sys
+
+
+MCAST_GRP = '224.1.1.1'
+MCAST_PORT = 50000
+IS_ALL_GROUPS = True
 
 remote_process = []
 
@@ -61,7 +63,7 @@ class Network:
 
             if tmp == b"migrate":
 
-                tmp = machine.recv(2048).decode()
+                tmp = machine.recv(4096).decode()
                 thread_id, fileName, size, position, line, size_var, size_label = tmp.split(" ")
                 size = int(size)
                 position = int(position)
@@ -92,7 +94,7 @@ class Network:
                             except:
                                 x = tmp
                                 tmp = ""
-                            value += x
+                            value = x
                             varA.append(var.variables(name, type, value))
 
                 tmp = machine.recv(size_label).decode()
@@ -123,7 +125,6 @@ class Network:
                 pros = multiprocessing.Process(target=parser.parse, args=(fileName, thread_id, "", varA, varL, buffer, merger, position, int(line)))
                 pros.start()
                 mylist.input(thread_id, fileName, "", pros)
-                print(mylist.__str__())
 
             elif tmp == b"message_pros_send":
                 tmp = machine.recv(2048).decode()
@@ -138,8 +139,9 @@ class Network:
                 thread_id1, thread_id2, message = tmp.split(" ", 2)
                 var.BufferArray_find(thread_id1, thread_id2, message, BufferArray=self.buffer)
 
-            elif tmp == b"I_have":
-                self.i_have = addr
+            elif tmp[:5] == b"I_have ":
+                x, l_addr, l_port = tmp.decode().split(" ")
+                self.i_have = (l_addr, int(l_port))
 
     def send(self):
         global mylist, remote_process
@@ -167,50 +169,63 @@ class Network:
                     while self.i_have == None:
                         pass
                     addr = self.i_have
-                    self.socket.connect(addr)
-                    self.socket.sendall(b"message_pros_send")
-                    self.socket.sendall(self.buffer[i].get_message().encode())
-                    self.socket.close()
+                    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    client.connect(addr)
+                    client.sendall(b"message_pros_send")
+                    message = id1 + " " + id2 + " " + self.buffer[i].msg.__str__()
+                    client.sendall(message.encode())
+                    client.close()
 
                 elif var.BufferArray_find_pos(pos, self.buffer):
                     for j in range(len(remote_process)):
                         if remote_process[j][0] == pos:
                             addr = remote_process[j][1]
-                            self.socket.connect(addr)
-                            self.socket.sendall(b"message_pros_recv")
+                            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            client.connect(addr)
+                            client.sendall(b"message_pros_recv")
                             x = remote_process[j][2] + " " + remote_process[j][3]
-                            self.socket.sendall(x.encode())
-                            self.socket.close()
+                            client.sendall(x.encode())
+                            client.close()
+
                             remote_process.pop(j)
             var.mutex.release()
             time.sleep(5)
 
     def multicast_rcv(self):
         global mylist
+        print("multicast_rcv")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('239.192.1.100', 50000))
-        mreq = struct.pack("=4sl", socket.inet_aton("224.51.105.104"), socket.INADDR_ANY)
+        if IS_ALL_GROUPS:
+            # on this port, receives ALL multicast groups
+            sock.bind(('', MCAST_PORT))
+        else:
+            # on this port, listen ONLY to MCAST_GRP
+            sock.bind((MCAST_GRP, MCAST_PORT))
+        mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
+
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         while True:
-            sock.settimeout(1)
+            sock.settimeout(5)
             try:
                 tmp = sock.recv(2048)
                 sock.settimeout(None)
             except:
                 continue
+            print(tmp.decode())
             tmp, addr, port = tmp.decode().split(" ")
-            if mylist.get_pos(tmp.decode()) != None:
+            if mylist.get_pros(tmp) != None:
                 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client.connect((addr, int(port)))
-                client.sendall(b"I_have")
+                client.sendall(("I_have " + self.Address[0] + " " + self.Address[1].__str__()).encode())
                 client.close()
 
 def multicast_send( message, Address):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 20)
     message = message + " " + str(Address[0]) + " " + str(Address[1])
-    s.sendto(message.encode(), ('239.192.1.100', 50000))
+    print(message)
+    s.sendto(message.encode(), ('224.1.1.1', 50000))
 
 
 

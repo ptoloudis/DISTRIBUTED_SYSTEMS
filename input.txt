@@ -2,7 +2,7 @@
 
 SET $a 4
 
-#L1 PRN "Hello World"
+#L1 PRN "Hello World" $a
 
 SUB $a $a 1
 BEQ $a 0 #L2

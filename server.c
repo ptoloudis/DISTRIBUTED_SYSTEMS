@@ -22,6 +22,7 @@ AEM : 03121 & 02995
 #include <sys/stat.h>
 #include <signal.h>
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 struct sockaddr_in sockaddr_server;
 int received = 0;
 int sent = 0;
@@ -36,9 +37,12 @@ void *receiver(void *arg)
     Info_t *info;
     socklen_t from_len;
     from_len = sizeof(sockaddr_server);
-    
+
+
+    printf("sag%s\n", buffer);
     while(recvfrom(sockfd, (void *)buffer, BUF_LEN, MSG_WAITALL, (struct sockaddr*)&sockaddr_server,  &from_len) > 0)
     {
+
         printf("Received\n");
         info = (Info_t *) malloc(sizeof(Info_t));
         if(info == NULL)
@@ -46,12 +50,16 @@ void *receiver(void *arg)
             perror("malloc");
             exit(1);
         }
+        pthread_mutex_lock(&mutex);
         memset(info->buffer, '\0', sizeof(info->buffer));
         strcpy(info->buffer, buffer);
         info->client_addr = sockaddr_server;
         info->client_addr_len = from_len;
         receive_buf[received % BUF_LEN] = *info;
+        pthread_mutex_unlock(&mutex);
         received++;
+        memset(buffer, '\0', sizeof(buffer));
+        // printf("sag%s\n", buffer);
     }
     return NULL;
 }
@@ -64,6 +72,7 @@ void *sender(void *arg){
 
     while(1){
         while(sent >= to_send );
+        pthread_mutex_lock(&mutex);
         info = &send_buf[sent % BUF_LEN];
         printf("Sending %s\n", info->buffer);
         n = sendto(sockfd, info->buffer, strlen(info->buffer), MSG_WAITALL, (struct sockaddr*)&info->client_addr, info->client_addr_len);
@@ -72,6 +81,7 @@ void *sender(void *arg){
             perror("sendto");
             exit(1);
         }
+        pthread_mutex_unlock(&mutex);
         printf("Sent %d bytes\n", n);
         sent++;
     }
@@ -118,7 +128,7 @@ void *execute_command(void *arg){
         memset(buffer,'\0', sizeof(buffer));
         strcpy(buffer, info->buffer);
 
-
+        printf("Received %s\n", buffer);
         sscanf(buffer,"%d %c %d#", &magic_number, &command, &reboot_number);
         sprintf(temp,"%d %c %d#", magic_number, command, reboot_number);
         
@@ -168,6 +178,8 @@ void *execute_command(void *arg){
             }
             else
             {
+                printf("Write %s\n", token);
+                printf(" tmp %s\n", temp);
                 token = nfs_write(fd, buffer, strlen(buffer), offset);
             }
             sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
@@ -186,10 +198,12 @@ void *execute_command(void *arg){
         default:
             break;
         }
+        pthread_mutex_lock(&mutex);
         int x = to_send % BUF_LEN;
         memset(info->buffer, '\0', sizeof(info->buffer));
         strcpy(info->buffer, message);
         send_buf[x] = *info;
+        pthread_mutex_unlock(&mutex);
         to_send++;
     }
 }

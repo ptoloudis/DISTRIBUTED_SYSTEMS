@@ -138,17 +138,27 @@ char *nfs_open(char *filename, int flags)
 
 char *nfs_read(int fd, void *buf, size_t n, int offset)
 {
-    char *message;
+    char buffer[1024];
+    char message[4098];
+    int tmp;
     fd = id_buf[fd].id;
-    mynfs_read(fd, buf, n, offset);
-    sprintf(message, "%d#%d", (int)n, (int)offset);
-    return message;
+    fd = file_buf[fd].fd;
+    printf("fd = %d\n", fd);
+    tmp = mynfs_read(fd, buffer, sizeof(buffer), offset);
+    if (tmp < 0)
+    {
+        return "File Not Read";
+    }
+    sprintf(message, "%d#%d#%s", fd, file_buf[fd].timestamp, buffer);
+    buf = message;
+    return buf;
 }
 
 char *nfs_write(int fd, void *buf, size_t n, int offset)
 {
     char *message;
     fd = id_buf[fd].id;
+    fd = file_buf[fd].fd;
     mynfs_write(fd, buf, n, offset);
     sprintf(message, "%s","OK");
     return message;
@@ -160,13 +170,14 @@ char *nfs_ftruncate(int fd, off_t size)
     char *message;
     mynfs_ftruncate(fd, size);
     sprintf(message, "%s", "OK");
+    return message;
 }
 
 char *nfs_mod(int fd, int last)
 {
     char *message;
     fd = id_buf[fd].id;
-    if (last == file_buf[tmp].timestamp)
+    if (last == file_buf[fd].timestamp)
     {
         sprintf(message, "%s", "OK");
     }

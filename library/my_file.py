@@ -36,6 +36,12 @@ class RingBuffer:
             """ return list of elements in correct order """
             return self.data[self.cur:] + self.data[:self.cur]
 
+        def get_data(self, size):
+            """ Return a list of elements from the oldest to the newest. """
+            return self.data[:size]
+
+        
+
     def append(self, x):
         """append an element at the end of the buffer"""
         self.data.append(x)
@@ -94,38 +100,42 @@ class File:
             return None
 
         if not self.load or (self.my_modification != 0 and self.my_modification > self.seek):
-            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size_cache)
+            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * self.size)
             resv = self.network.send_message(message, "r", size)
             if resv == None:
                 return None
             if resv == "Reboot":
                 return -1
-            self.last_modified, data = resv.split("#")
-            for i in range(0, self.size_cache):
-                self.cache.get_data()
+            
+            x =resv
+            # print(x)
+            num_of_msg, self.last_modified, data = x.split("#")
+    
+            for i in range(0, self.size):
+                x = self.cache.get_data(self.size)
                 self.cache.append(data[i * self.size_block:(i + 1) * self.size_block])
             self.my_modification = 0  # reset modification counter
 
         if self.seek + size > self.file_end:
-            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * int(self.size_cache/3 + 1))
+            message = "r " + self.server_id + " " + str(self.seek) + " " + str(self.size_block * int(self.size/3 + 1))
             resv = self.network.send_message(message, "r", size)
             if resv == None:
                 return None
             if resv == "Reboot":
                 return -1
-            self.last_modified, data = resv.split("#")
+            num_of_msg, self.last_modified, data = resv.split("#")
             for i in range(0, 3):
-                self.cache.get_data()
+                self.cache.get_data(self.size)
                 self.cache.append(data[i*self.size_block:(i+1)*self.size_block])
         self.seek += size
-        return self.cache.get_data(int(size / self.size_block))
+        return self.cache.get_data(int(self.size / self.size_block))
 
     def write_file(self, data):  # 0 to not write, len(data) to write
         if self.flags[-1:] == OnlyReadMode:
             print("Permission denied")
             return None
 
-        message = "w " + self.server_id + " " + str(self.seek) + " " + data
+        message = "w " + self.server_id + " " + str(self.seek) + " " + data.__str__()
         resv = self.network.send_message(message, "w", 0)
         if resv == None:
             return None
@@ -136,8 +146,8 @@ class File:
         self.last_modified = resv
         self.my_modification = self.seek  # set modification counter to current seek
         self.timestamp = time()
-        self.seek += len(data)
-        return len(data)
+        self.seek += len(data.__str__())
+        return len(data.__str__())
 
     def seek_file(self, offset, whence):
         if whence == 0:

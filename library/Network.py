@@ -29,9 +29,9 @@ class Network:
             # self.client.settimeout(20)  # 20 second
             try:
                 if op == 'r':
-                    data = self.client.recv(size).decode()
+                    data = self.client.recv(2048).decode()
                 else:
-                    data = self.client.recv(1024).decode()
+                    data = self.client.recv(2048).decode()
 
                 if data:
                     if data[:len(str(count))] == str(count):

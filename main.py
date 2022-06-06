@@ -7,9 +7,14 @@
 from library.general import *
 
 
-x = General('192.168.2.4', 12001, 0, 0, 5)
+x = General('172.18.61.92', 12001, 10, 10, 5)
 
-z = x.mynfs_open("distrsys_s22_Assignment3.pdf", O_RDONLY)
-x.mynfs_read(z, 10)
 
-# /home/sabrina/code/DISTRIBUTED_SYSTEMS/files
+# x, z= input('Enter the file name: ')
+z = x.mynfs_open("small.txt", O_RDWR)   
+
+print(x.mynfs_truncate(z,10))
+# print(x.mynfs_write(z, 20))
+# print(x.mynfs_read(z, 10))
+# print(x.mynfs_read(z, 10))
+# /mnt/d/github/DISTRIBUTED_SYSTEMS

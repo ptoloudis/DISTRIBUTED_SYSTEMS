@@ -100,11 +100,11 @@ void *execute_command(void *arg){
     int magic_number, reboot_number, my_reboot;
     char message[1024];
     char command;
-    char *token;
+    char *token = NULL;
     char tmp[1024], temp[1024];
     char path[1024];
     int flag;
-    int offset, last_modified;
+    int offset = 0, last_modified = 0;
     
     mynfs_init();
 
@@ -164,23 +164,25 @@ void *execute_command(void *arg){
             sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;
         case 'w':
+            /* Write to Disk */
             if (reboot_number != my_reboot)
             {
                 sprintf(message, "%s", "Reboot");   
                 break;
             }
-            sscanf(tmp, "%d %d", &fd, &seek);
-            sprintf(temp, "%d %d ",fd, seek);
+            sscanf(tmp, ".%d %d", &fd, &seek);
+            sprintf(temp, ".%d %d ",fd, seek);
+            printf("%d, %d\n", fd, seek);
             token = strtok(tmp,temp);
-            if (!strcmp(tmp,"$#trun#$"))
+            if (!strcmp(token,"$#trun#$"))
             {
-               token = nfs_ftruncate(fd, strlen(buffer)); 
+               token = nfs_ftruncate(fd, token,(off_t) seek); 
             }
             else
             {
-                printf("Write %s\n", token);
-                printf(" tmp %s\n", temp);
-                token = nfs_write(fd, buffer, strlen(buffer), offset);
+                // printf("Write %s\n", token);
+                printf(" tmp %d\n", seek);
+                token = nfs_write(fd, token, strlen(token), seek);
             }
             sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
             break;

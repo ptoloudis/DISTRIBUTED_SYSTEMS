@@ -110,7 +110,8 @@ int mynfs_ftruncate(int fd, off_t size)
     File_t *file = &file_buf[fd];
 
     file->timestamp ++;
-    return ftruncate(fd, size);
+    printf("Truncating file%s %lu\n", file->filename, size);
+    return truncate(file->filename, size);
 }
 
 int mynfs_close(int fd)
@@ -156,26 +157,29 @@ char *nfs_read(int fd, void *buf, size_t n, int offset)
 
 char *nfs_write(int fd, void *buf, size_t n, int offset)
 {
-    char *message;
+    char message[4098];
     fd = id_buf[fd].id;
     fd = file_buf[fd].fd;
     mynfs_write(fd, buf, n, offset);
     sprintf(message, "%s","OK");
-    return message;
+    buf = message;
+    return buf;
 }
 
-char *nfs_ftruncate(int fd, off_t size)
+char *nfs_ftruncate(int fd, void *buf, off_t size)
 {
     fd = id_buf[fd].id;
-    char *message;
+    char message[4098];
+    printf("fd = %d, %lu\n", fd, size);
     mynfs_ftruncate(fd, size);
     sprintf(message, "%s", "OK");
-    return message;
+    buf = message;
+    return buf;
 }
 
 char *nfs_mod(int fd, int last)
 {
-    char *message;
+    char *message = NULL;
     fd = id_buf[fd].id;
     if (last == file_buf[fd].timestamp)
     {
@@ -189,6 +193,15 @@ char *nfs_mod(int fd, int last)
 }
 
 
-char *nfs_close(int fd){
-    return mynfs_close(fd);
-}
+// char *nfs_close(int fd){
+//     char *ptr;
+//     int tmp;
+//     fd = id_buf[fd].id;
+//     tmp = mynfs_close(id_buf[fd].id);
+//     if(tmp < 0)
+//     {
+//         return "File Not Closed";
+//     }
+//     ptr = "OK";
+//     return ptr;
+// }

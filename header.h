@@ -72,6 +72,6 @@ char *nfs_open(char *filename, int flags);
 char *nfs_read(int fd, void *buf, size_t n, int offset);
 char *nfs_write(int fd, void *buf, size_t n, int offset);
 char *nfs_seek(int fd, off_t pos, int whence);
-char *nfs_ftruncate(int fd, off_t len);
+char *nfs_ftruncate(int fd, void *buf, off_t len);
 char *nfs_close(int fd);
 char *nfs_mod(int fd, int last);

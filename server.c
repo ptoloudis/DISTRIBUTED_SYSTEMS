@@ -43,7 +43,6 @@ void *receiver(void *arg)
     while(recvfrom(sockfd, (void *)buffer, BUF_LEN, MSG_WAITALL, (struct sockaddr*)&sockaddr_server,  &from_len) > 0)
     {
 
-        printf("Received\n");
         info = (Info_t *) malloc(sizeof(Info_t));
         if(info == NULL)
         {
@@ -74,7 +73,6 @@ void *sender(void *arg){
         while(sent >= to_send );
         pthread_mutex_lock(&mutex);
         info = &send_buf[sent % BUF_LEN];
-        printf("Sending %s\n", info->buffer);
         n = sendto(sockfd, info->buffer, strlen(info->buffer), MSG_WAITALL, (struct sockaddr*)&info->client_addr, info->client_addr_len);
         if(n < 0)
         {
@@ -82,7 +80,6 @@ void *sender(void *arg){
             exit(1);
         }
         pthread_mutex_unlock(&mutex);
-        printf("Sent %d bytes\n", n);
         sent++;
     }
     return NULL;
@@ -128,7 +125,6 @@ void *execute_command(void *arg){
         memset(buffer,'\0', sizeof(buffer));
         strcpy(buffer, info->buffer);
 
-        printf("Received %s\n", buffer);
         sscanf(buffer,"%d %c %d#", &magic_number, &command, &reboot_number);
         sprintf(temp,"%d %c %d#", magic_number, command, reboot_number);
         
@@ -172,7 +168,6 @@ void *execute_command(void *arg){
             }
             sscanf(tmp, ".%d %d", &fd, &seek);
             sprintf(temp, ".%d %d ",fd, seek);
-            printf("%d, %d\n", fd, seek);
             token = strtok(tmp,temp);
             if (!strcmp(token,"$#trun#$"))
             {
@@ -180,8 +175,6 @@ void *execute_command(void *arg){
             }
             else
             {
-                // printf("Write %s\n", token);
-                printf(" tmp %d\n", seek);
                 token = nfs_write(fd, token, strlen(token), seek);
             }
             sprintf(message, "%d#%d.%s", magic_number, my_reboot, token);
@@ -290,11 +283,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-
-
-// #TODO: Encoding and Decoding
-// #TODO: Debugging
-// #TODO: Error handling
-// #TODO: Test Files
-// #TODO: 

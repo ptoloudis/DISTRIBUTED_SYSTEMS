@@ -49,15 +49,11 @@ class General:
         resv = self.network.send_message(message, "o", 0)
         if "File Not Created" not in resv:
             id, last_mod, size = resv.split("#")
-            print(id, last_mod, size)
-
             x: File = File(path, flags, id, self.cacheblocks, self.blocksize, int(size), int(last_mod), self.network)
             self.counter += 1
             self.files.append(Files(x, self.counter))
-            print(time()-a)
             return self.counter
         else:
-            print(time()-a)
             return 0
 
     def mynfs_read(self, fd, size):

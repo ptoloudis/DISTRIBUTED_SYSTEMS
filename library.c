@@ -50,8 +50,7 @@ int mynfs_open(char *filename, int flags)
     File_t *file;
     struct stat stat_buf;
     char *fi;
-
-    printf("Opening file %s\n", filename);   
+ 
 
     for(int i = 0; i < BUF_LEN/2; i++)
     {
@@ -59,7 +58,6 @@ int mynfs_open(char *filename, int flags)
         if(file_buf[i].fd == 0)
         {
             fd = open(filename, flags);
-            printf("fd = %d\n", fd);
             if(fd <= 0)
             {
                 return -1;
@@ -110,7 +108,6 @@ int mynfs_ftruncate(int fd, off_t size)
     File_t *file = &file_buf[fd];
 
     file->timestamp ++;
-    printf("Truncating file%s %lu\n", file->filename, size);
     return truncate(file->filename, size);
 }
 
@@ -144,7 +141,6 @@ char *nfs_read(int fd, void *buf, size_t n, int offset)
     int tmp;
     fd = id_buf[fd].id;
     fd = file_buf[fd].fd;
-    printf("fd = %d\n", fd);
     tmp = mynfs_read(fd, buffer, sizeof(buffer), offset);
     if (tmp < 0)
     {
@@ -170,7 +166,6 @@ char *nfs_ftruncate(int fd, void *buf, off_t size)
 {
     fd = id_buf[fd].id;
     char message[4098];
-    printf("fd = %d, %lu\n", fd, size);
     mynfs_ftruncate(fd, size);
     sprintf(message, "%s", "OK");
     buf = message;
@@ -191,17 +186,3 @@ char *nfs_mod(int fd, int last)
     }
     return message;
 }
-
-
-// char *nfs_close(int fd){
-//     char *ptr;
-//     int tmp;
-//     fd = id_buf[fd].id;
-//     tmp = mynfs_close(id_buf[fd].id);
-//     if(tmp < 0)
-//     {
-//         return "File Not Closed";
-//     }
-//     ptr = "OK";
-//     return ptr;
-// }

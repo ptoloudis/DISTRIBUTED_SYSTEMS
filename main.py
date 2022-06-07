@@ -7,15 +7,33 @@
 from library.general import *
 
 
-x = General('192.168.1.65', 12001, 5, 5, 10000)
+x = input("Enter the server's IP address: ")
+buffer_size = int(input("Enter the buffer size: "))
+chace_size = int(input("Enter the cache size: "))
+timeout = int(input("Enter the timeout: "))
+x = General(x,12001,buffer_size,chace_size,timeout)
 
-
-# x, z= input('Enter the file name: ')
-z = x.mynfs_open("small.txt", O_WRONLY)   
-
-print(x.mynfs_truncate(z,5))
-# x.mynfs_seek(z,522,0)
-# print(x.mynfs_write(z, "hi_ioanna"))
-# print(x.mynfs_read(z, 20))
-# print(x.mynfs_read(z, 10))
-# /mnt/d/github/DISTRIBUTED_SYSTEMS/files
+while True:
+    tmp = input("Enter the command: ")
+    if tmp == "exit":
+        break
+    if tmp == "open":
+        file = input("Enter the file name, permission: ")
+        z = x.mynfs_open(file[0],file[1])
+    if tmp == "close":
+        file = input("Enter the file name: ")
+        x.mynfs_close(file)
+    if tmp == "read":
+        size = int(input("Enter the size: "))
+        print(x.mynfs_read(z,size))
+    if tmp == "write":
+        str = input("Enter the string: ")
+        x.mynfs_write(z,str)
+    if tmp == "seek":   
+        offset = int(input("Enter the offset: "))
+        x.mynfs_seek(z,offset)
+    if tmp == "tell":
+        print(x.mynfs_tell(z))
+    if tmp =="truncate":
+        size = int(input("Enter the size: "))
+        x.mynfs_truncate(z,size)

@@ -1,3 +1,0 @@
-not open: 4e-4 seconds
-open:   0.0002 -> 4e-5 seconds
-        0.0003 -> 5 or 7 e-5 seconds

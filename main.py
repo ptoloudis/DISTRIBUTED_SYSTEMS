@@ -7,14 +7,15 @@
 from library.general import *
 
 
-x = General('172.18.61.92', 12001, 10, 10, 5)
+x = General('192.168.1.65', 12001, 5, 5, 10000)
 
 
 # x, z= input('Enter the file name: ')
-z = x.mynfs_open("small.txt", O_RDWR)   
+z = x.mynfs_open("small.txt", O_WRONLY)   
 
-print(x.mynfs_truncate(z,10))
-# print(x.mynfs_write(z, 20))
+print(x.mynfs_truncate(z,5))
+# x.mynfs_seek(z,522,0)
+# print(x.mynfs_write(z, "hi_ioanna"))
+# print(x.mynfs_read(z, 20))
 # print(x.mynfs_read(z, 10))
-# print(x.mynfs_read(z, 10))
-# /mnt/d/github/DISTRIBUTED_SYSTEMS
+# /mnt/d/github/DISTRIBUTED_SYSTEMS/files

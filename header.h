@@ -22,7 +22,7 @@ AEM : 03121 & 02995
 
 /********************** DEFINITIONS **********************/
 
-#define SERVER_IP "172.18.61.92" 
+#define SERVER_IP "192.168.2.4"
 #define SERVER_PORT 12000
 #define CLIENT_PORT 12001
 #define BUF_LEN 1024

@@ -39,7 +39,6 @@ void *receiver(void *arg)
     from_len = sizeof(sockaddr_server);
 
 
-    printf("sag%s\n", buffer);
     while(recvfrom(sockfd, (void *)buffer, BUF_LEN, MSG_WAITALL, (struct sockaddr*)&sockaddr_server,  &from_len) > 0)
     {
 
@@ -58,7 +57,6 @@ void *receiver(void *arg)
         pthread_mutex_unlock(&mutex);
         received++;
         memset(buffer, '\0', sizeof(buffer));
-        // printf("sag%s\n", buffer);
     }
     return NULL;
 }

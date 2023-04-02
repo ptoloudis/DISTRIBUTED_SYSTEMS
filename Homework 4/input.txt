@@ -1,0 +1,11 @@
+#SIMPLESCRIPT
+
+SET $a 4
+
+#L1 PRN "Hello World" $a
+
+SUB $a $a 1
+BEQ $a 0 #L2
+BRA #L1
+
+#L2 RET

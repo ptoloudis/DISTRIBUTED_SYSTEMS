@@ -1,0 +1,11 @@
+#SIMPLESCRIPT
+
+SET $a "Hello World"
+
+PRN $a
+SLP 50
+
+PRN $a
+SLP 50
+
+RET
